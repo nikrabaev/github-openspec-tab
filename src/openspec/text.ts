@@ -202,3 +202,7 @@ export function wordSimilarity(a: string, b: string): number {
   }
   return (2 * common) / (left.length + right.length);
 }
+
+/** `3 scenarios`, `1 scenario`. */
+export const plural = (count: number, one: string, many = `${one}s`) =>
+  `${count} ${count === 1 ? one : many}`;

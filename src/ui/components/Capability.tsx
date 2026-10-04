@@ -1,0 +1,92 @@
+import { blobUrl } from '@/github/route';
+import type { CapabilityView } from '@/openspec';
+import { usePull } from '../context';
+import { ChevronIcon, SpecIcon } from '../icons';
+import { Markdown, TermScope } from '../markdown/Markdown';
+import { Callout, CopyLink, ProblemList, plural } from './common';
+import { RequirementBody, RequirementCard } from './Requirement';
+
+function CountChips({ view }: { view: CapabilityView }) {
+  const { added, modified, removed, renamed } = view.counts;
+  return (
+    <span className="counts">
+      {added > 0 && <span className="count count-added">+{added}</span>}
+      {modified > 0 && <span className="count count-modified">~{modified}</span>}
+      {removed > 0 && <span className="count count-removed">−{removed}</span>}
+      {renamed > 0 && <span className="count count-renamed">→{renamed}</span>}
+    </span>
+  );
+}
+
+/** One capability's spec: its changed requirements as cards, the rest folded away. */
+export function CapabilitySection({ view }: { view: CapabilityView }) {
+  const { data } = usePull();
+  const sourcePath = view.deltaPath ?? view.specPath;
+  return (
+    <section className="section capability" data-item={view.id} data-nav="">
+      <header className="section-head">
+        <h3>
+          <SpecIcon />
+          <span>{view.label}</span>
+        </h3>
+        <code className="cap-id">{view.capability}</code>
+        {view.isNew && <span className="tag tag-added">New capability</span>}
+        {view.historical && <span className="tag">Archived earlier</span>}
+        <CountChips view={view} />
+        <span className="grow" />
+        <a className="quiet-link" href={blobUrl(data.pull, data.facts.headSha, sourcePath)}>
+          {view.deltaPath ? 'Delta file' : 'Spec file'}
+        </a>
+        <CopyLink id={view.id} />
+      </header>
+
+      <ProblemList problems={view.problems} />
+
+      {view.purpose && (
+        <Callout tone="neutral" title={view.purposeBefore ? 'Purpose (changed)' : 'Purpose'}>
+          <Markdown source={view.purpose} />
+          {view.purposeBefore && (
+            <div className="removed-text">
+              <Markdown source={view.purposeBefore} />
+            </div>
+          )}
+        </Callout>
+      )}
+
+      {view.fallbackMarkdown !== null && (
+        <div className="card fallback">
+          <Markdown source={view.fallbackMarkdown} />
+        </div>
+      )}
+
+      <div className="req-list">
+        {view.changes.map((change) => (
+          <RequirementCard key={change.id} change={change} historical={view.historical} />
+        ))}
+      </div>
+
+      {view.unchanged.length > 0 && (
+        <details className="unchanged">
+          <summary>
+            <ChevronIcon className="chev" />
+            {plural(view.unchanged.length, 'unchanged requirement')}
+          </summary>
+          <div className="unchanged-list">
+            {view.unchanged.map((requirement) => (
+              <article key={requirement.name} className="req req-unchanged">
+                <header className="req-head">
+                  <h4>{requirement.name}</h4>
+                </header>
+                <div className="req-body">
+                  <TermScope>
+                    <RequirementBody requirement={requirement} scenariosOpen={false} />
+                  </TermScope>
+                </div>
+              </article>
+            ))}
+          </div>
+        </details>
+      )}
+    </section>
+  );
+}
