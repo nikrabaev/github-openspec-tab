@@ -174,6 +174,8 @@ The number on the tab is the count of requirement changes. A pull request with n
 
 **Adding the tab.** GitHub serves two pull request tab bars, a React one and the classic one. Both are found by their accessible names, and the new tab is a clone of a native tab, so it looks right in either. The tab is re-added after GitHub's soft navigations and re-renders. While it is open, the native tab content is hidden, not removed.
 
+On the React page the tab waits until React has taken over the HTML the server sent. Added earlier, it would make React discard the page content and render it a second time. Only a script in the page's own context can see when that is, so the extension runs a second, very small content script there (`react-probe`) that answers this one question and does nothing else.
+
 **The URL.** The tab lives in the hash: `…/pull/123#openspec`, or `#openspec/<change>/<section>` for a link to one requirement. A hash is never sent to GitHub, so reload, back/forward and shared links work.
 
 **Review comments.** With a token, one GraphQL query reads the threads, and a fixed set of GraphQL mutations writes: the page names an operation and sends its variables, and the background worker holds the documents, so nothing else can be run with the token. Without a token, a public repository's comments are read through the REST API. After every write the threads are read again, so the tab shows what GitHub holds.
@@ -231,7 +233,7 @@ pnpm build && pnpm exec tsx scripts/smoke.ts https://github.com/Fission-AI/OpenS
 | `src/diff/` | Word-level diff and scenario and step alignment. |
 | `src/github/` | URL scheme, API access, the loader, tab injection. |
 | `src/ui/` | The React view and its stylesheet. |
-| `src/entrypoints/` | Background worker, content script, settings page. |
+| `src/entrypoints/` | Background worker, content script, page script, settings page. |
 | `harness/` | The dev harness page. |
 | `fixtures/` | Synthetic OpenSpec repositories used by tests, harness and screenshots. |
 

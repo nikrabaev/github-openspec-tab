@@ -9,6 +9,8 @@
  * native one, so it picks up whatever class names that build of GitHub uses.
  */
 
+import { isMountedByReact } from './react';
+
 const TAB_ATTRIBUTE = 'data-openspec-tab';
 const COUNT_ATTRIBUTE = 'data-openspec-count';
 const HIDDEN_ATTRIBUTE = 'data-openspec-hidden';
@@ -20,6 +22,8 @@ const NAV_SELECTOR = [
   'nav[aria-label^="Pull request navigation"]',
   'nav[aria-label="Pull request tabs"]',
 ].join(', ');
+// The custom elements GitHub renders its React apps into.
+const REACT_ROOT_SELECTOR = 'react-app, react-partial';
 const COUNTER_SELECTOR = '[data-component="CounterLabel"], .Counter';
 const SELECTED_SELECTOR = '[aria-current="page"], .selected';
 
@@ -60,12 +64,29 @@ function selectedClasses(nav: HTMLElement): string[] {
   return [...selected.classList].filter((name) => !other.classList.contains(name));
 }
 
-function createTab(nav: HTMLElement): HTMLAnchorElement | null {
+/** The native tab ours goes after: "Files changed", or failing that the last one. */
+function anchorTab(nav: HTMLElement): HTMLAnchorElement | undefined {
   const tabs = nativeTabs(nav);
-  const filesTab =
+  return (
     nav.querySelector<HTMLAnchorElement>('a#prs-files-anchor-tab') ??
     tabs.find((tab) => /\/(files|changes)$/.test(new URL(tab.href, location.href).pathname)) ??
-    tabs[tabs.length - 1];
+    tabs[tabs.length - 1]
+  );
+}
+
+/**
+ * Whether a tab can be added to this tab bar now. The classic one is plain
+ * HTML and always ready. The React one is ready once React has mounted the
+ * element the tab goes into: added before that, the tab makes React discard
+ * the page content and render it a second time (see `react.ts`).
+ */
+export function isTabBarReady(nav: HTMLElement): boolean {
+  const parent = anchorTab(nav)?.parentElement;
+  return !parent?.closest(REACT_ROOT_SELECTOR) || isMountedByReact(parent);
+}
+
+function createTab(nav: HTMLElement): HTMLAnchorElement | null {
+  const filesTab = anchorTab(nav);
   if (!filesTab) return null;
 
   const tab = filesTab.cloneNode(true) as HTMLAnchorElement;
@@ -134,9 +155,14 @@ function createTab(nav: HTMLElement): HTMLAnchorElement | null {
   return tab;
 }
 
+/** The OpenSpec tab, if this tab bar has one. */
+export function findTab(nav: HTMLElement): HTMLAnchorElement | null {
+  return nav.querySelector<HTMLAnchorElement>(`a[${TAB_ATTRIBUTE}]`);
+}
+
 /** The OpenSpec tab, created right after "Files changed" when it is not there yet. */
 export function ensureTab(nav: HTMLElement, href: string, onClick: (event: MouseEvent) => void) {
-  let tab = nav.querySelector<HTMLAnchorElement>(`a[${TAB_ATTRIBUTE}]`);
+  let tab = findTab(nav);
   if (!tab) {
     tab = createTab(nav);
     tab?.addEventListener('click', onClick);
