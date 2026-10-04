@@ -243,14 +243,14 @@ try {
   await page.screenshot({ path: join(out, '5-from-commits.png') });
 
   // "Files changed" is a page of its own with no compact header from GitHub: ours must be there.
-  await page.goto(`${url.replace(/[#?].*$/, '')}/files#openspec`, {
-    waitUntil: 'domcontentloaded',
-  });
-  const lastCard = page.locator('openspec-tab .req').last();
+  await page.goto(`${url.replace(/[#?].*$/, '')}/files#openspec`, { waitUntil: 'load' });
+  // A card of the loaded view: the loading skeleton has `.req` placeholders too.
+  const lastCard = page.locator('openspec-tab .req:has(.req-head)').last();
   await lastCard.waitFor({ timeout: 30_000 });
   await lastCard.scrollIntoViewIfNeeded();
-  await page.waitForTimeout(500);
-  const onFiles = await page.locator('openspec-tab .pull-head').evaluate((header) => {
+  const pullHead = page.locator('openspec-tab .pull-head');
+  await pullHead.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
+  const onFiles = await pullHead.evaluate((header) => {
     const rect = header.getBoundingClientRect();
     const top = document.elementFromPoint(rect.left + 40, rect.top + rect.height / 2);
     return rect.top === 0 && rect.height > 0 && top?.tagName === 'OPENSPEC-TAB';
