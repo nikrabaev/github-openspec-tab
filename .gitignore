@@ -7,3 +7,5 @@ dist
 web-ext.config.ts
 /harness/dist
 /test-results
+.claude
+scripts/_*
