@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useRef, useState } from 'react';
+import { type ReactNode, type RefObject, useEffect, useRef, useState } from 'react';
 import { deepLink } from '@/github/route';
 import type { Counts, Operation, Problem } from '@/openspec';
 import { usePull, useReview } from '../context';
@@ -160,6 +160,26 @@ export function ProgressBar({
       <span style={{ transform: `scaleX(${fraction})` }} />
     </div>
   );
+}
+
+/**
+ * Tells a section how tall its sticky header is, as `--section-head-height` on
+ * the section, so the requirement headers inside can stick right below it
+ * whatever the header wraps to.
+ */
+export function useHeadHeight(head: RefObject<HTMLElement | null>): void {
+  useEffect(() => {
+    const element = head.current;
+    const section = element?.parentElement;
+    if (!element || !section || typeof ResizeObserver === 'undefined') return;
+    const publish = () =>
+      section.style.setProperty('--section-head-height', `${element.offsetHeight}px`);
+    // Once now, so a jump made on load already lands below the header.
+    publish();
+    const observer = new ResizeObserver(publish);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [head]);
 }
 
 /** A titled section of a change, with its anchor, deep link and read toggle. */

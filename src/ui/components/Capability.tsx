@@ -1,18 +1,29 @@
+import { useRef } from 'react';
 import { blobUrl } from '@/github/route';
 import type { CapabilityView } from '@/openspec';
 import { usePull } from '../context';
 import { ChevronIcon, SpecIcon } from '../icons';
 import { Markdown, TermScope } from '../markdown/Markdown';
-import { Callout, CopyLink, CountChips, isCompact, ProblemList, plural } from './common';
+import {
+  Callout,
+  CopyLink,
+  CountChips,
+  isCompact,
+  ProblemList,
+  plural,
+  useHeadHeight,
+} from './common';
 import { RequirementBody, RequirementCard } from './Requirement';
 
 /** One capability's spec: its changed requirements as cards, the rest folded away. */
 export function CapabilitySection({ view }: { view: CapabilityView }) {
   const { data } = usePull();
   const sourcePath = view.deltaPath ?? view.specPath;
+  const head = useRef<HTMLElement>(null);
+  useHeadHeight(head);
   return (
     <section className="section capability" data-item={view.id} data-nav="">
-      <header className="section-head">
+      <header className="section-head" ref={head}>
         <h3>
           <SpecIcon />
           <span>{view.label}</span>

@@ -175,7 +175,10 @@ function Ready({
       }
       let active = items[0];
       for (const item of items) {
-        if (item.getBoundingClientRect().top <= 48) active = item;
+        // An item counts once it is near where a jump would put it: under the window's top
+        // edge, or under the sticky header of the section it is in.
+        const line = (Number.parseFloat(getComputedStyle(item).scrollMarginTop) || 0) + 32;
+        if (item.getBoundingClientRect().top <= line) active = item;
         else break;
       }
       setCurrent(active?.dataset.item ?? null);

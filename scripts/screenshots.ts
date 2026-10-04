@@ -77,6 +77,15 @@ const SHOTS: Shot[] = [
   },
   { name: 'new-capability', target: `${GROUP_RIDES}/spec/group-rides` },
   {
+    // Scrolled into a card: the section's header and the card's own header stay at the top.
+    name: 'sticky-headers',
+    target: `${GROUP_RIDES}/spec/ride-unlock/unlock-by-qr-code`,
+    async prepare(page) {
+      await page.mouse.move(800, 400);
+      await page.mouse.wheel(0, 260);
+    },
+  },
+  {
     name: 'unchanged-requirements',
     target: `${GROUP_RIDES}/spec/ride-billing/daily-fare-cap`,
     async prepare(page) {

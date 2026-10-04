@@ -79,6 +79,31 @@ try {
   if (await firstCard.count()) {
     await firstCard.scrollIntoViewIfNeeded();
     await page.screenshot({ path: join(out, '3-requirements.png') });
+    // Scroll into the card: its section's header and its own header must stay in view,
+    // which GitHub's page could prevent (a clipping ancestor, a sticky bar of its own).
+    await firstCard.evaluate((card) => {
+      window.scrollTo({ top: window.scrollY + card.getBoundingClientRect().top - 20 });
+    });
+    await page.waitForTimeout(300);
+    // Where a header sits, and "covered" when something of GitHub's is painted over it.
+    // (Kept free of inner functions: tsx wraps those in a helper the page does not have.)
+    const place = (selector: string) =>
+      firstCard.evaluate((card, query) => {
+        const element =
+          query === '.section-head'
+            ? card.closest('.section')?.querySelector(query)
+            : card.querySelector(query);
+        if (!element) return 'missing';
+        const rect = element.getBoundingClientRect();
+        const top = document.elementFromPoint(rect.left + 40, rect.top + rect.height / 2);
+        return `${Math.round(rect.top)}${top?.tagName === 'OPENSPEC-TAB' ? '' : ' covered'}`;
+      }, selector);
+    const heads = { section: await place('.section-head'), head: await place('.req-head') };
+    check(
+      `headers stay in view while scrolling (section at ${heads.section}, requirement at ${heads.head})`,
+      heads.section === '0' && /^\d+$/.test(heads.head) && Number(heads.head) > 0,
+    );
+    await page.screenshot({ path: join(out, '3b-sticky-headers.png') });
     const comment = page.locator('openspec-tab .req a.icon-button.has-label').first();
     check(
       `requirement links to its source (${(await comment.getAttribute('href'))?.split('#')[1]?.slice(0, 16)}…)`,

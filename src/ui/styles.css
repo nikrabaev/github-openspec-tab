@@ -695,13 +695,20 @@ button.flag:hover {
   min-width: 0;
 }
 
+/* Stays at the top of the window while its section is being read. The space above the
+   title is for when it is stuck; the negative margin keeps it where it was when it is not. */
 .section-head {
+  position: sticky;
+  top: 0;
+  z-index: 3;
   display: flex;
   flex-wrap: wrap;
   gap: 8px 10px;
   align-items: center;
-  min-height: 40px;
-  padding-bottom: 8px;
+  min-height: 48px;
+  padding-block: 8px;
+  margin-top: -8px;
+  background: var(--bg);
   border-bottom: 1px solid var(--border);
 }
 
@@ -905,12 +912,36 @@ button.flag:hover {
   border-color: var(--borderColor-done-muted, #c297ff66);
 }
 
+/* Sticks right below its section's header, so the requirement being read keeps its name
+   and its actions in view. */
 .req-head {
+  position: sticky;
+  top: var(--section-head-height, 48px);
+  z-index: 2;
   display: flex;
   flex-wrap: wrap;
   gap: 6px 10px;
   align-items: center;
-  padding: 12px 12px 0 16px;
+  padding: 12px 12px 8px 16px;
+  background: inherit;
+  border-radius: 9px 9px 0 0;
+  container: req-head / scroll-state;
+}
+
+/* A line under the header only while it is stuck and the card scrolls beneath it. */
+@container req-head scroll-state(stuck: top) {
+  .req-head::after {
+    position: absolute;
+    inset: auto 0 0;
+    height: 1px;
+    content: '';
+    background: var(--border);
+  }
+}
+
+/* A jump to a requirement stops below the section header, not under it. */
+.req[data-item] {
+  scroll-margin-top: calc(var(--section-head-height, 48px) + 12px);
 }
 
 .req-head h4 {
@@ -933,11 +964,11 @@ button.flag:hover {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 10px 16px 16px;
+  padding: 2px 16px 16px;
 }
 
 .req-body:empty {
-  padding-top: 4px;
+  padding-block: 0 12px;
 }
 
 .old-name {
