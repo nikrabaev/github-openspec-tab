@@ -390,7 +390,8 @@ const VERDICTS: Array<{ event: ReviewEvent; label: string; hint: string }> = [
   },
 ];
 
-function FinishReview({ onClose }: { onClose(): void }) {
+/** The dialog that submits the review in progress: a summary, a verdict, the pending comments. */
+export function FinishReview({ onClose }: { onClose(): void }) {
   const comments = useComments();
   const ref = useRef<HTMLDialogElement>(null);
   const [event, setEvent] = useState<ReviewEvent>('COMMENT');
@@ -490,24 +491,5 @@ function FinishReview({ onClose }: { onClose(): void }) {
         </div>
       </form>
     </dialog>
-  );
-}
-
-/** Shown while the reader has a review in progress: what is pending, and the way to submit it. */
-export function ReviewBar() {
-  const comments = useComments();
-  const [finishing, setFinishing] = useState(false);
-  if (!comments.reviewing) return null;
-  return (
-    <div className="review-bar">
-      <div className="review-bar-text">
-        <strong>Review in progress</strong>
-        <span className="muted">{plural(comments.pending, 'pending comment')}</span>
-      </div>
-      <button type="button" className="button button-primary" onClick={() => setFinishing(true)}>
-        Finish review
-      </button>
-      {finishing && <FinishReview onClose={() => setFinishing(false)} />}
-    </div>
   );
 }

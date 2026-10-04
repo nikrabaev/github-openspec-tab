@@ -184,6 +184,34 @@ try {
       ),
     );
     check("GitHub's own compact header does not show as well", !native);
+
+    // The toolbar is part of that header. A font that ships with the extension is read from
+    // its files, which GitHub's content security policy would refuse to a stylesheet.
+    await page.locator('openspec-tab .tools-head .tool-button').click();
+    await page.locator('openspec-tab .tools-head .settings select').selectOption('lexend');
+    const loaded = await page
+      .waitForFunction(
+        () =>
+          [...document.fonts].some(
+            (face) => face.family.includes('Lexend') && face.status === 'loaded',
+          ),
+        null,
+        { timeout: 5000 },
+      )
+      .then(
+        () => true,
+        () => false,
+      );
+    const family = await page
+      .locator('openspec-tab .content')
+      .evaluate((content) => getComputedStyle(content).fontFamily);
+    check(
+      `the reading settings in the header load a shipped font (${family.slice(0, 24)}…)`,
+      loaded && family.includes('Lexend'),
+    );
+    await page.screenshot({ path: join(out, '3a-reading-settings.png') });
+    await page.locator('openspec-tab .tools-head .settings-reset').click();
+    await page.keyboard.press('Escape');
     // Where a header sits, and "covered" when something of GitHub's is painted over it.
     // (Kept free of inner functions: tsx wraps those in a helper the page does not have.)
     const place = (selector: string) =>

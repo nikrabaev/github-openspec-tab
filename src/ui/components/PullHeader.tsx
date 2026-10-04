@@ -4,6 +4,7 @@ import { type PullRef, treeUrl, userUrl } from '@/github/route';
 import { plural } from '@/openspec/text';
 import { CopyIcon, PullClosedIcon, PullDraftIcon, PullMergedIcon, PullOpenIcon } from '../icons';
 import { CopyButton } from './common';
+import { Toolbar, type ToolbarProps } from './Toolbar';
 
 const STATES = {
   open: { label: 'Open', Icon: PullOpenIcon },
@@ -24,12 +25,14 @@ function Branch({ branch, head }: { branch: BranchFacts; head?: boolean }) {
 }
 
 /**
- * The compact pull request header GitHub fixes to the top of the window once
- * the tab bar has scrolled out of sight: state, title, who merges what into
- * where. The tab draws its own. GitHub's is part of the page the tab replaces,
- * and not every page has one: "Files changed" puts a toolbar there instead.
+ * The toolbar at the top of the tab, and the compact pull request header GitHub
+ * fixes to the top of the window once the tab bar has scrolled out of sight:
+ * state, title, who merges what into where. As on GitHub's "Files changed", the
+ * toolbar becomes part of that header. The tab draws its own header: GitHub's
+ * is part of the page the tab replaces, and not every page has one.
  */
-export function PullHeader({ pull, facts }: { pull: PullRef; facts: PullFacts }) {
+export function PullHeader(props: { pull: PullRef; facts: PullFacts; toolbar: ToolbarProps }) {
+  const { pull, facts, toolbar } = props;
   const marker = useRef<HTMLDivElement>(null);
   const [stuck, setStuck] = useState(false);
   useEffect(() => {
@@ -50,6 +53,7 @@ export function PullHeader({ pull, facts }: { pull: PullRef; facts: PullFacts })
   return (
     <>
       <div className="pull-head-marker" ref={marker} />
+      <Toolbar {...toolbar} placement="row" shown={!stuck} />
       <header className="pull-head" hidden={!stuck}>
         <div className="pull-head-content">
           <span className={`pull-state pull-state-${state}`}>
@@ -85,6 +89,7 @@ export function PullHeader({ pull, facts }: { pull: PullRef; facts: PullFacts })
               />
             </div>
           </div>
+          <Toolbar {...toolbar} placement="head" shown={stuck} />
         </div>
       </header>
     </>

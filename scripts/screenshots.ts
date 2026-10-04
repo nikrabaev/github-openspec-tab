@@ -105,7 +105,8 @@ const SHOTS: Shot[] = [
     comments: 'review',
     target: `${GROUP_RIDES}/proposal`,
     async prepare(page) {
-      await page.getByRole('button', { name: 'Finish review' }).click();
+      // The page is scrolled to the proposal, so the button is the one in the header.
+      await page.locator('.tools-head .review-button').click();
     },
   },
   { name: 'comments-read-only', comments: 'read', target: `${GROUP_RIDES}/design` },
@@ -157,6 +158,21 @@ const SHOTS: Shot[] = [
       const cards = page.locator(`[data-item="${GROUP_RIDES}/spec/group-rides"] .req .read`);
       await cards.nth(0).click();
       await cards.nth(1).click();
+    },
+  },
+  {
+    // The toolbar in the pull request header, with the reading settings open.
+    name: 'reading-settings',
+    target: `${GROUP_RIDES}/spec/ride-unlock/unlock-by-qr-code`,
+    hero: ['light'],
+    async prepare(page) {
+      await page.locator('.tools-head .tool-button').click();
+      const settings = page.locator('.tools-head .settings');
+      await settings.locator('select').selectOption('atkinson');
+      await settings.getByRole('button', { name: 'Larger text' }).click();
+      await settings.getByText('Wide').click();
+      await page.waitForFunction(() => document.fonts.size >= 4);
+      await page.evaluate(() => document.fonts.ready);
     },
   },
   {

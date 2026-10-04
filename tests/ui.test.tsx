@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import type React from 'react';
 import { renderToString } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
@@ -16,7 +16,9 @@ import { isCompact, layoutRows, pairHalves } from '../src/ui/components/common';
 import { when } from '../src/ui/components/Discussion';
 import { PullHeader } from '../src/ui/components/PullHeader';
 import { fitOutlineWidth } from '../src/ui/components/Resizer';
+import { fitTextScale, fitTextWeight, type ToolbarProps } from '../src/ui/components/Toolbar';
 import type { Services } from '../src/ui/context';
+import { FONTS, fontStack } from '../src/ui/fonts';
 import { Markdown, MarkdownProvider } from '../src/ui/markdown/Markdown';
 import { looksLikePath, resolveRepoPath } from '../src/ui/markdownOptions';
 import { buildOutline, filterOutline } from '../src/ui/outline';
@@ -28,9 +30,20 @@ const services: Services = {
   saveReview: async () => {},
   preferences: () => DEFAULT_PREFERENCES,
   savePreferences: async () => {},
+  fontUrl: (file) => `/fonts/${file}`,
   openOptions: () => {},
   navigate: () => {},
   reload: () => {},
+};
+
+const TOOLBAR: ToolbarProps = {
+  prefs: DEFAULT_PREFERENCES,
+  onPrefs: () => {},
+  progress: { read: 0, total: 12, stale: 0 },
+  settingsOpen: false,
+  onSettings: () => {},
+  onFinishReview: () => {},
+  fontFailed: false,
 };
 
 const FACTS: PullFacts = {
@@ -124,20 +137,26 @@ describe('App', () => {
         state={{ status: 'ready', data: loaded('showcase') }}
         repo="pedalway/pedalway"
         target={null}
-        services={{ ...services, preferences: () => ({ diffView: 'split', outlineWidth: 340 }) }}
+        services={{
+          ...services,
+          preferences: () => ({ ...DEFAULT_PREFERENCES, diffView: 'split', outlineWidth: 340 }),
+        }}
       />,
     );
-    expect(html).toContain('style="--outline-width:340px"');
+    expect(html).toContain('style="--outline-width:340px;');
     expect(html).toMatch(/<hr class="outline-resizer"[^>]*aria-valuenow="340"/);
     expect(html).toContain('class="content view-split"');
-    expect(render('showcase')).toContain('style="--outline-width:272px"');
+    expect(render('showcase')).toContain('style="--outline-width:272px;');
     // The skeleton shown while loading is laid out the same way.
     const loading = toHtml(
       <App
         state={{ status: 'loading' }}
         repo="pedalway/pedalway"
         target={null}
-        services={{ ...services, preferences: () => ({ diffView: 'split', outlineWidth: 340 }) }}
+        services={{
+          ...services,
+          preferences: () => ({ ...DEFAULT_PREFERENCES, diffView: 'split', outlineWidth: 340 }),
+        }}
       />,
     );
     expect(loading).toMatch(/class="layout" aria-busy="true"[^>]*style="--outline-width:340px"/);
@@ -197,6 +216,7 @@ describe('App', () => {
     expect(header).toContain('class="pull-state pull-state-open"');
     expect(
       header
+        .slice(0, header.indexOf('<div class="tools'))
         .replace(/<svg.*?<\/svg>|<[^>]+>/gs, ' ')
         .replace(/\s+/g, ' ')
         .trim(),
@@ -210,13 +230,102 @@ describe('App', () => {
     expect(render('empty')).not.toContain('pull-head');
   });
 
+  it('puts a toolbar above the reading view and again in the header', () => {
+    const html = render('showcase');
+    const text = (part: string) =>
+      part
+        .replace(/<svg.*?<\/svg>|<[^>]+>/gs, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    const row = /<div class="tools tools-row">.*?<header class="pull-head"/s.exec(html)?.[0] ?? '';
+    const total = buildOutline(modelOf('showcase').model).filter((item) => item.hash).length;
+    expect(text(row.replace(/<header.*$/s, ''))).toBe(
+      `How modified requirements are shown Inline Side by side New only 0 / ${total} read Aa`,
+    );
+    expect(row).toMatch(/role="progressbar"[^>]*aria-valuetext="0 of \d+ read"/);
+    // The settings are closed until asked for, and no review is in progress.
+    expect(row).toContain(
+      'aria-label="Reading settings" aria-haspopup="dialog" aria-expanded="false"',
+    );
+    expect(html).not.toContain('class="settings"');
+    expect(html).not.toContain('Finish review');
+    // The same controls in the header that takes over once the page is scrolled.
+    expect(html).toContain('<div class="tools tools-head">');
+    // The outline keeps to navigation.
+    const outline = /<nav class="outline".*?<\/nav>/s.exec(html)?.[0] ?? '';
+    expect(outline).not.toContain('read-count');
+    expect(outline).not.toContain('segmented');
+  });
+
+  it("applies the reader's font, text size, weight and width to what is read", () => {
+    const html = toHtml(
+      <App
+        state={{ status: 'ready', data: loaded('showcase') }}
+        repo="pedalway/pedalway"
+        target={null}
+        services={{
+          ...services,
+          preferences: () => ({
+            ...DEFAULT_PREFERENCES,
+            font: 'lexend',
+            textScale: 130,
+            textWeight: 500,
+            contentWidth: 'narrow',
+          }),
+        }}
+      />,
+    );
+    const layout = /<div class="layout"[^>]*>/.exec(html)?.[0] ?? '';
+    expect(layout).toContain('data-width="narrow"');
+    expect(layout).toContain('--reader-scale:1.3');
+    expect(layout).toContain('--reader-weight:100');
+    expect(layout).toContain('--reader-font:&#x27;OpenSpec Tab Lexend&#x27;');
+    // The default keeps GitHub's font and the full width.
+    const plain = /<div class="layout"[^>]*>/.exec(render('showcase'))?.[0] ?? '';
+    expect(plain).toContain('data-width="full"');
+    expect(plain).toContain('--reader-scale:1;');
+    expect(plain).toContain('--reader-weight:0');
+    expect(plain).not.toContain('--reader-font');
+  });
+
+  it('keeps a stored text size and font name within what the tab can show', () => {
+    expect(fitTextScale(110)).toBe(110);
+    expect(fitTextScale(114)).toBe(110);
+    expect(fitTextScale(20)).toBe(80);
+    expect(fitTextScale(400)).toBe(160);
+    expect(fitTextScale(undefined)).toBe(100);
+    expect(fitTextScale('large')).toBe(100);
+    expect(fitTextWeight(300)).toBe(300);
+    expect(fitTextWeight(350)).toBe(400);
+    expect(fitTextWeight(undefined)).toBe(400);
+    expect(fontStack({ font: 'default', customFont: '' })).toBeNull();
+    expect(fontStack({ font: 'atkinson', customFont: '' })).toMatch(
+      /^'OpenSpec Tab Atkinson Hyperlegible', /,
+    );
+    expect(fontStack({ font: 'custom', customFont: ' ' })).toBeNull();
+    expect(fontStack({ font: 'custom', customFont: "Comic'; } body { display: none" })).toMatch(
+      /^'Comic {2}body {2}display: none', -apple-system/,
+    );
+    // Every file the list names is in the extension, next to its licence.
+    for (const font of FONTS) {
+      for (const { file } of font.files ?? [])
+        expect(existsSync(`public/fonts/${file}`), file).toBe(true);
+      if (font.files) expect(existsSync(`public/fonts/${font.id}-LICENSE.txt`)).toBe(true);
+    }
+  });
+
   it('words the header as GitHub does for a draft, a merged and a fork pull request', () => {
     const header = (facts: Partial<PullFacts>) =>
-      toHtml(
-        <PullHeader
-          pull={{ owner: 'pedalway', repo: 'pedalway', number: 128 }}
-          facts={{ ...FACTS, ...facts }}
-        />,
+      (
+        /<header class="pull-head".*?<div class="tools/s.exec(
+          toHtml(
+            <PullHeader
+              pull={{ owner: 'pedalway', repo: 'pedalway', number: 128 }}
+              facts={{ ...FACTS, ...facts }}
+              toolbar={TOOLBAR}
+            />,
+          ),
+        )?.[0] ?? ''
       )
         .replace(/<svg.*?<\/svg>|<[^>]+>/gs, ' ')
         .replace(/\s+/g, ' ')
@@ -235,6 +344,7 @@ describe('App', () => {
           base: { label: 'pedalway:main', ref: 'main', repo: 'pedalway/pedalway' },
           head: { label: 'mira:group-rides', ref: 'group-rides', repo: null },
         }}
+        toolbar={TOOLBAR}
       />,
     );
     expect(fork).toContain('>pedalway:main</a>');

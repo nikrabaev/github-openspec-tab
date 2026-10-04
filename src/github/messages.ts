@@ -47,9 +47,27 @@ export interface Preferences {
   diffView: 'inline' | 'split' | 'new';
   /** How wide the reader made the outline, in pixels. */
   outlineWidth: number;
+  /** The font of the text. `custom`: the one named in `customFont`. */
+  font: 'default' | 'lexend' | 'atkinson' | 'serif' | 'custom';
+  /** A font installed on the reader's computer, by name. */
+  customFont: string;
+  /** The size of the text, in percent of the size GitHub's own pages use. */
+  textScale: number;
+  /** The weight of the body text, 400 being regular. Bolder text is as much heavier as before. */
+  textWeight: number;
+  /** How wide the text may get. `full`: as wide as the page. */
+  contentWidth: 'narrow' | 'medium' | 'wide' | 'full';
 }
 
-export const DEFAULT_PREFERENCES: Preferences = { diffView: 'inline', outlineWidth: 272 };
+export const DEFAULT_PREFERENCES: Preferences = {
+  diffView: 'inline',
+  outlineWidth: 272,
+  font: 'default',
+  customFont: '',
+  textScale: 100,
+  textWeight: 400,
+  contentWidth: 'full',
+};
 
 export type Message =
   | { type: 'api'; path: string; etag?: string }

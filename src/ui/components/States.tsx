@@ -5,47 +5,52 @@ import { AlertIcon, ClockIcon, InboxIcon, KeyIcon, StopIcon } from '../icons';
 /** Shown while the pull request is being read: the shape of what is coming. */
 export function LoadingState({ outlineWidth }: { outlineWidth: number }) {
   return (
-    <div
-      className="layout"
-      aria-busy="true"
-      aria-live="polite"
-      style={{ '--outline-width': `${outlineWidth}px` } as CSSProperties}
-    >
-      <span className="sr-only">Loading OpenSpec changes</span>
-      <div className="outline" aria-hidden="true">
-        <div className="skeleton sk-line" style={{ width: '50%' }} />
-        <div className="skeleton sk-bar" />
-        <div className="skeleton sk-input" />
-        {[70, 45, 55, 80, 65, 75, 50, 60].map((width, index) => (
-          <div
-            key={index}
-            className="skeleton sk-line"
-            style={{ width: `${width}%`, marginInlineStart: index % 3 ? 16 : 0 }}
-          />
-        ))}
+    <>
+      <div className="tools tools-row" aria-hidden="true">
+        <div className="skeleton sk-input" style={{ width: 240 }} />
+        <span className="grow" />
+        <div className="skeleton sk-line" style={{ width: 96 }} />
       </div>
-      <div className="content" aria-hidden="true">
-        <div className="overview">
-          <div className="skeleton sk-pill" />
-          <div className="skeleton sk-title" />
-          <div className="skeleton sk-line" style={{ width: '92%' }} />
-          <div className="skeleton sk-line" style={{ width: '78%' }} />
-          <div className="sk-stats">
-            {[0, 1, 2, 3, 4].map((index) => (
-              <div key={index} className="skeleton sk-stat" />
-            ))}
-          </div>
+      <div
+        className="layout"
+        aria-busy="true"
+        aria-live="polite"
+        style={{ '--outline-width': `${outlineWidth}px` } as CSSProperties}
+      >
+        <span className="sr-only">Loading OpenSpec changes</span>
+        <div className="outline" aria-hidden="true">
+          <div className="skeleton sk-input" />
+          {[70, 45, 55, 80, 65, 75, 50, 60].map((width, index) => (
+            <div
+              key={index}
+              className="skeleton sk-line"
+              style={{ width: `${width}%`, marginInlineStart: index % 3 ? 16 : 0 }}
+            />
+          ))}
         </div>
-        {[0, 1].map((index) => (
-          <div key={index} className="req">
-            <div className="skeleton sk-line" style={{ width: '40%' }} />
-            <div className="skeleton sk-line" style={{ width: '95%' }} />
-            <div className="skeleton sk-line" style={{ width: '85%' }} />
-            <div className="skeleton sk-line" style={{ width: '60%' }} />
+        <div className="content" aria-hidden="true">
+          <div className="overview">
+            <div className="skeleton sk-pill" />
+            <div className="skeleton sk-title" />
+            <div className="skeleton sk-line" style={{ width: '92%' }} />
+            <div className="skeleton sk-line" style={{ width: '78%' }} />
+            <div className="sk-stats">
+              {[0, 1, 2, 3, 4].map((index) => (
+                <div key={index} className="skeleton sk-stat" />
+              ))}
+            </div>
           </div>
-        ))}
+          {[0, 1].map((index) => (
+            <div key={index} className="req">
+              <div className="skeleton sk-line" style={{ width: '40%' }} />
+              <div className="skeleton sk-line" style={{ width: '95%' }} />
+              <div className="skeleton sk-line" style={{ width: '85%' }} />
+              <div className="skeleton sk-line" style={{ width: '60%' }} />
+            </div>
+          ))}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
