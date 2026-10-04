@@ -200,20 +200,26 @@ function ThreadView({ placed }: { placed: PlacedThread }) {
           {first.author.login} · {plural(thread.comments.length, 'comment')}
         </span>
         <span className="grow" />
-        {comments.canWrite && thread.canResolve && (
-          <button
-            type="button"
-            className="icon-button has-label"
-            disabled={busy}
-            onClick={(event) => {
-              // The button sits in the summary: do not fold the thread as well.
-              event.preventDefault();
-              void toggleResolved();
-            }}
-          >
-            {thread.resolved ? 'Unresolve' : 'Resolve'}
-          </button>
-        )}
+        {comments.canWrite &&
+          thread.canResolve &&
+          (comments.resolveBlocked ? (
+            <a className="icon-button has-label" href={first.url} title={comments.resolveBlocked}>
+              {thread.resolved ? 'Unresolve' : 'Resolve'} on GitHub <ExternalIcon size={12} />
+            </a>
+          ) : (
+            <button
+              type="button"
+              className="icon-button has-label"
+              disabled={busy}
+              onClick={(event) => {
+                // The button sits in the summary: do not fold the thread as well.
+                event.preventDefault();
+                void toggleResolved();
+              }}
+            >
+              {thread.resolved ? 'Unresolve' : 'Resolve'}
+            </button>
+          ))}
       </summary>
       <ul className="thread-comments">
         {thread.comments.map((comment) => (

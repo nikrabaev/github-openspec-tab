@@ -121,7 +121,7 @@ Public repositories work with no setup. For a private repository the tab needs a
 
 1. Open [GitHub → Settings → Developer settings → Fine-grained tokens → Generate new token](https://github.com/settings/personal-access-tokens/new).
 2. **Resource owner:** the user or organisation that owns the repositories. **Repository access:** the repositories you review.
-3. **Repository permissions:** set **Contents** to **Read-only**, and **Pull requests** to **Read and write** if you want to comment from the tab, or **Read-only** if you only want to read. Nothing else.
+3. **Repository permissions:** set **Contents** to **Read-only**, and **Pull requests** to **Read and write** if you want to comment from the tab, or **Read-only** if you only want to read. Nothing else. (Resolving threads from the tab would need more: see [Review comments](#review-comments).)
 4. Generate the token. An organisation may have to approve it first.
 5. Open the extension's settings (the **Add a token** button in the tab, or the extension's "Options") and paste it.
 
@@ -131,11 +131,14 @@ Without a token the tab still shows up on a private repository and tells you one
 
 The tab shows the pull request's review threads where they belong: on a requirement card (with the scenario a thread is on), in the block or decision of the proposal and design, under a task group, or with the file for a comment on the file as a whole. Resolved threads, and threads left on text that has since changed, fold into one line.
 
-| | Without a token | Token with Pull requests: Read-only | Read and write |
-| --- | --- | --- | --- |
-| See threads | Public repositories | Yes | Yes |
-| See which are resolved | No | Yes | Yes |
-| Comment, reply, resolve, submit a review | No | No | Yes |
+| | Without a token | Pull requests: Read-only | Pull requests: Read and write | Also Contents: Read and write |
+| --- | --- | --- | --- | --- |
+| See threads | Public repositories | Yes | Yes | Yes |
+| See which are resolved | No | Yes | Yes | Yes |
+| Comment, reply, submit a review | No | No | Yes | Yes |
+| Resolve and unresolve threads | No | No | No | Yes |
+
+The last column is GitHub's rule, not the tab's: it lets a fine-grained token resolve a thread only if the token could also push code. If you would rather not give it that, the tab says so the first time you try, and from then on each thread's "Resolve" opens the thread on GitHub.
 
 Writing works like GitHub's own review:
 

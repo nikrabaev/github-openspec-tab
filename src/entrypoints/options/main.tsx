@@ -100,7 +100,9 @@ function Options() {
           Under <strong>Repository permissions</strong>, set <code>Contents</code> to{' '}
           <strong>Read-only</strong>, and <code>Pull requests</code> to{' '}
           <strong>Read and write</strong> to comment from the tab, or <strong>Read-only</strong> to
-          only read. Nothing else is needed.
+          only read. Nothing else is needed. Resolving threads from the tab is the exception: GitHub
+          allows it only with <code>Contents</code> set to <strong>Read and write</strong>, which
+          also lets the token push code. Without that, the tab links to the thread on GitHub.
         </li>
         <li>
           Generate the token and paste it below. An organisation may have to approve it first.

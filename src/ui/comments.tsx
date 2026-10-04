@@ -7,7 +7,13 @@ import {
   useRef,
   useState,
 } from 'react';
-import type { CommentMode, CommentsSnapshot, CommentTarget, ReviewEvent } from '@/github/comments';
+import {
+  CommentError,
+  type CommentMode,
+  type CommentsSnapshot,
+  type CommentTarget,
+  type ReviewEvent,
+} from '@/github/comments';
 import { type Placement, placeThreads, regionsOf } from '@/github/placement';
 import type { PrModel } from '@/openspec';
 import type { CommentServices } from './context';
@@ -34,6 +40,11 @@ export interface CommentsValue {
   addThread(target: CommentTarget, body: string, mode: CommentMode): Promise<void>;
   reply(threadId: string, body: string, mode: CommentMode): Promise<void>;
   setResolved(threadId: string, resolved: boolean): Promise<void>;
+  /**
+   * Why threads cannot be resolved from here, once GitHub has said the token may not.
+   * Null while that is not known; the threads then offer a link to GitHub instead.
+   */
+  resolveBlocked: string | null;
   submitReview(event: ReviewEvent, body: string): Promise<void>;
   /** Why the threads could not be read, when they could not. */
   loadError: string | null;
@@ -57,6 +68,7 @@ const OFF: CommentsValue = {
   addThread: unavailable,
   reply: unavailable,
   setResolved: unavailable,
+  resolveBlocked: null,
   submitReview: unavailable,
   loadError: null,
 };
@@ -76,6 +88,7 @@ export function useCommentsState(
   const [loadError, setLoadError] = useState<string | null>(null);
   const [composing, setComposing] = useState<CommentsValue['composing']>(null);
   const [notice, setNotice] = useState<CommentsValue['notice']>(null);
+  const [resolveBlocked, setResolveBlocked] = useState<string | null>(null);
   const loadedAt = useRef(0);
   const latest = useRef(snapshot);
   latest.current = snapshot;
@@ -154,10 +167,20 @@ export function useCommentsState(
       },
       reply: (threadId, body, mode) =>
         write((current) => services.reply(current, threadId, body, mode)),
-      setResolved: (threadId, resolved) => write(() => services.setResolved(threadId, resolved)),
+      async setResolved(threadId, resolved) {
+        try {
+          await write(() => services.setResolved(threadId, resolved));
+        } catch (error) {
+          if (error instanceof CommentError && error.kind === 'cannot-resolve') {
+            setResolveBlocked(error.message);
+          }
+          throw error;
+        }
+      },
+      resolveBlocked,
       submitReview: (event, body) =>
         write((current) => services.submitReview(current, event, body)),
       loadError,
     };
-  }, [services, snapshot, placement, composing, notice, loadError, refresh]);
+  }, [services, snapshot, placement, composing, notice, resolveBlocked, loadError, refresh]);
 }

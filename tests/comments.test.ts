@@ -5,6 +5,7 @@ import type { Backend } from '../src/github/backend';
 import {
   addReply,
   addThread,
+  CANNOT_RESOLVE,
   CommentError,
   type CommentsSnapshot,
   loadComments,
@@ -329,11 +330,26 @@ describe('writing comments', () => {
     expect(names()).toEqual(['startReview', 'addThread', 'deleteReview']);
   });
 
-  it('explains a token that may not write', async () => {
+  it("explains a token that may not write, in GitHub's words too", async () => {
     const { backend } = scripted(() => refused('forbidden', 'Resource not accessible'));
     const error = await addThread(backend, reader, target, 'x', 'single').catch((e: unknown) => e);
     expect(error).toBeInstanceOf(CommentError);
     expect((error as CommentError).message).toContain('Pull requests: Read and write');
+    expect((error as CommentError).message).toContain('"Resource not accessible"');
+  });
+
+  it('says what resolving needs when a token that can comment may not resolve', async () => {
+    const { backend } = scripted(() => refused('forbidden', 'Resource not accessible'));
+    const error = await setResolved(backend, 'T', true).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(CommentError);
+    expect((error as CommentError).kind).toBe('cannot-resolve');
+    expect((error as CommentError).message).toBe(CANNOT_RESOLVE);
+    expect(CANNOT_RESOLVE).toContain('Contents: Read and write');
+    // Any other failure keeps its own explanation.
+    const offline = scripted(() => refused('network'));
+    await expect(setResolved(offline.backend, 'T', true)).rejects.toMatchObject({
+      kind: 'network',
+    });
   });
 
   it('replies at once, or into the pending review', async () => {

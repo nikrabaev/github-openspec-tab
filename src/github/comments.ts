@@ -79,6 +79,7 @@ export type CommentErrorKind =
   | 'invalid'
   | 'network'
   | 'stale'
+  | 'cannot-resolve'
   | 'failed';
 
 export class CommentError extends Error {
@@ -98,7 +99,9 @@ function toError(result: GraphqlResult): CommentError {
     case 'forbidden':
       return new CommentError(
         'forbidden',
-        'GitHub did not allow this with your token. To comment from here it needs the "Pull requests: Read and write" permission for this repository.',
+        `GitHub did not allow this with your token${
+          result.message ? ` ("${result.message}")` : ''
+        }. Commenting needs "Pull requests: Read and write" on the token. If it has that, check that this repository is in the token's repository access and that the organisation has approved the token.`,
       );
     case 'network':
       return new CommentError('network', 'Could not reach api.github.com. Nothing was posted.');
@@ -430,12 +433,23 @@ export async function addReply(
   }
 }
 
+/**
+ * What GitHub asks of a fine-grained token before it may resolve a thread. Its
+ * rule is that a conversation is resolved by someone with write access to the
+ * repository, and for a token that is "Contents", not "Pull requests".
+ */
+export const CANNOT_RESOLVE =
+  'GitHub lets a fine-grained token resolve or unresolve a thread only if it has "Contents: Read and write", which would also let it push code. "Pull requests: Read and write" covers commenting, but not this. Resolve the thread on GitHub, or widen the token if you accept that.';
+
 export async function setResolved(
   backend: Backend,
   threadId: string,
   resolved: boolean,
 ): Promise<void> {
-  await run(backend, resolved ? 'resolve' : 'unresolve', { threadId });
+  const result = await backend.graphql(resolved ? 'resolve' : 'unresolve', { threadId });
+  if (result.ok) return;
+  if (result.failure === 'forbidden') throw new CommentError('cannot-resolve', CANNOT_RESOLVE);
+  throw toError(result);
 }
 
 /** Publish the reader's pending review, with a verdict and an optional summary. */
