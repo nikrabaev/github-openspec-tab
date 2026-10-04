@@ -25,6 +25,14 @@ const NAV_SELECTOR = [
 // The custom elements GitHub renders its React apps into.
 const REACT_ROOT_SELECTOR = 'react-app, react-partial';
 const COUNTER_SELECTOR = '[data-component="CounterLabel"], .Counter';
+/**
+ * GitHub's compact pull request header (state, title, branches), which it fixes
+ * to the top of the window once the tab bar has scrolled out of sight, and the
+ * marker under the tab bar it watches to know when. Neither has a name or a
+ * role; the name of their CSS module is what identifies them.
+ */
+const STICKY_HEADER_SELECTOR = '[class*="StickyPullRequestHeader-module__prHeader"]';
+const STICKY_HEADER_PARTS = '[class*="StickyPullRequestHeader-module__"]';
 const SELECTED_SELECTOR = '[aria-current="page"], .selected';
 
 const ICON_PATHS = [
@@ -41,7 +49,8 @@ export function ensurePageStyle(): void {
     [${HIDDEN_ATTRIBUTE}] { display: none !important; }
     /* GitHub reserves the height of the content we hide; give it back so the tab sits under the header. */
     [${COMPACT_ATTRIBUTE}] { min-height: 0 !important; }
-    /* The classic sticky PR header would sit on top of the tab's own sticky outline. */
+    /* The classic sticky PR header would sit on top of the tab's own sticky outline: only the
+       React page's header is measured and given room (see alignWithHeader). */
     html[data-openspec-active] .gh-header-sticky { display: none !important; }
   `;
   (document.head ?? document.documentElement).append(style);
@@ -232,6 +241,9 @@ export function findBoundary(nav: HTMLElement): HTMLElement {
  * Hide everything that follows the tab bar inside the boundary: the native tab
  * content, whatever its markup. Elements are only hidden, never removed, so
  * GitHub's own scripts keep working and everything comes back untouched.
+ *
+ * The fixed pull request header and its marker also follow the tab bar. They
+ * stay, so the header keeps appearing on scroll as it does on the native tabs.
  */
 export function hideNativeContent(
   nav: HTMLElement,
@@ -248,6 +260,7 @@ export function hideNativeContent(
     for (let sibling = element.nextElementSibling; sibling; sibling = sibling.nextElementSibling) {
       if (sibling === keep || sibling.hasAttribute(HIDDEN_ATTRIBUTE)) continue;
       if (/^(SCRIPT|STYLE|TEMPLATE|LINK)$/.test(sibling.tagName)) continue;
+      if (sibling.matches(STICKY_HEADER_PARTS)) continue;
       sibling.setAttribute(HIDDEN_ATTRIBUTE, '');
     }
   }
@@ -285,4 +298,23 @@ export function alignWithNav(nav: HTMLElement, host: HTMLElement): void {
   host.style.setProperty('--openspec-gutter-start', start);
   host.style.setProperty('--openspec-gutter-end', end);
   host.style.setProperty('--openspec-max-width', 'none');
+}
+
+/**
+ * Leave room at the top of the window for GitHub's fixed pull request header,
+ * so the tab's own sticky headers stop below it and a jump lands clear of it.
+ * The room is there whether or not the header is showing: it shows up before
+ * anything in the tab reaches the top of the window, and taking the room only
+ * then would make whatever is stuck at that moment jump.
+ */
+export function alignWithHeader(host: HTMLElement): void {
+  const header = document.querySelector<HTMLElement>(STICKY_HEADER_SELECTOR);
+  // GitHub's stylesheet fixes its height, so the height can be read before it is displayed.
+  const height =
+    header && !header.closest(`[${HIDDEN_ATTRIBUTE}]`)
+      ? header.offsetHeight || Number.parseFloat(getComputedStyle(header).height) || 0
+      : 0;
+  const top = `${Math.round(height)}px`;
+  if (host.style.getPropertyValue('--openspec-sticky-top') !== top)
+    host.style.setProperty('--openspec-sticky-top', top);
 }
