@@ -157,19 +157,30 @@ try {
   if (await firstCard.count()) {
     await firstCard.scrollIntoViewIfNeeded();
     await page.screenshot({ path: join(out, '3-requirements.png') });
-    // Scroll into the card: GitHub fixes its own pull request header to the top of the
-    // window, and the section's header and the card's own must stay in view below it, which
-    // GitHub's page could prevent (a clipping ancestor, its header painted over ours).
+    // Scroll into the card: the tab's pull request header is fixed to the top of the window,
+    // and the section's header and the card's own must stay in view below it, which GitHub's
+    // page could prevent (a clipping ancestor, a bar of its own painted over ours).
     await firstCard.evaluate((card) => {
       window.scrollTo({ top: window.scrollY + card.getBoundingClientRect().top - 20 });
     });
     await page.waitForTimeout(300);
-    const fixed = await page.evaluate(() => {
-      const header = document.querySelector('[class*="StickyPullRequestHeader-module__prHeader"]');
-      const rect = header?.getBoundingClientRect();
-      return rect && rect.top === 0 ? Math.round(rect.bottom) : 0;
+    const fixed = await page.locator('openspec-tab .pull-head').evaluate((header) => {
+      const rect = header.getBoundingClientRect();
+      const top = document.elementFromPoint(rect.left + 40, rect.top + rect.height / 2);
+      return rect.top === 0 && top?.tagName === 'OPENSPEC-TAB' ? Math.round(rect.bottom) : 0;
     });
-    check(`GitHub's pull request header stays at the top of the window (${fixed}px)`, fixed > 0);
+    const header = (await page.locator('openspec-tab .pull-head').innerText()).replace(/\s+/g, ' ');
+    check(
+      `the pull request header stays at the top of the window (${header.slice(0, 60)}…)`,
+      fixed > 0,
+    );
+    // GitHub's own compact header is part of the page the tab replaces.
+    const native = await page.evaluate(() =>
+      [...document.querySelectorAll('[class*="StickyPullRequestHeader-module__prHeader"]')].some(
+        (element) => getComputedStyle(element).display !== 'none',
+      ),
+    );
+    check("GitHub's own compact header does not show as well", !native);
     // Where a header sits, and "covered" when something of GitHub's is painted over it.
     // (Kept free of inner functions: tsx wraps those in a helper the page does not have.)
     const place = (selector: string) =>
@@ -189,10 +200,7 @@ try {
       heads.section === String(fixed) && /^\d+$/.test(heads.head) && Number(heads.head) > fixed,
     );
     await page.screenshot({ path: join(out, '3b-sticky-headers.png') });
-    // The title in GitHub's header links to "#top", which must not replace the tab's hash.
-    await page
-      .locator('[class*="StickyPullRequestHeader-module__prHeader"] a[href="#top"]')
-      .click();
+    await page.locator('openspec-tab .pull-head-title button').click();
     // GitHub scrolls smoothly, so the top is reached a moment later.
     const atTop = await page
       .waitForFunction(() => window.scrollY === 0, undefined, { timeout: 5000 })
@@ -251,6 +259,22 @@ try {
     .waitFor({ timeout: 30_000 });
   check('the tab opens again from the Commits page', true);
   await page.screenshot({ path: join(out, '5-from-commits.png') });
+
+  // "Files changed" is a page of its own with no compact header from GitHub: ours must be there.
+  await page.goto(`${url.replace(/[#?].*$/, '')}/files#openspec`, {
+    waitUntil: 'domcontentloaded',
+  });
+  const lastCard = page.locator('openspec-tab .req').last();
+  await lastCard.waitFor({ timeout: 30_000 });
+  await lastCard.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(500);
+  const onFiles = await page.locator('openspec-tab .pull-head').evaluate((header) => {
+    const rect = header.getBoundingClientRect();
+    const top = document.elementFromPoint(rect.left + 40, rect.top + rect.height / 2);
+    return rect.top === 0 && rect.height > 0 && top?.tagName === 'OPENSPEC-TAB';
+  });
+  check('the pull request header is there on the Files changed page too', onFiles);
+  await page.screenshot({ path: join(out, '6-from-files.png') });
 
   check(`no page errors (${problems.length})`, problems.length === 0);
   for (const problem of problems) console.log(`   ${problem}`);

@@ -8,7 +8,6 @@ import { defineContentScript } from 'wxt/utils/define-content-script';
 import { extensionBackend, send } from '@/github/backend';
 import { addReply, addThread, loadComments, setResolved, submitReview } from '@/github/comments';
 import {
-  alignWithHeader,
   alignWithNav,
   ensurePageStyle,
   ensureTab,
@@ -75,7 +74,6 @@ class Controller {
     for (const type of ['turbo:render', 'turbo:load', 'soft-nav:end', 'soft-nav:react-done']) {
       this.ctx.addEventListener(document, type as 'click', schedule);
     }
-    this.ctx.addEventListener(document, 'click', this.onPageClick, { capture: true });
     // A token may have been added in the settings page in the meantime.
     this.ctx.addEventListener(document, 'visibilitychange', () => {
       const error = this.phase.status === 'error' ? this.phase.error : null;
@@ -184,20 +182,6 @@ class Controller {
     this.sync();
   };
 
-  /**
-   * The title in GitHub's fixed header links to `#top`. The tab lives in the hash, so
-   * following that link would close it: go to the top of the page and stay in the tab.
-   */
-  private onPageClick = (event: MouseEvent): void => {
-    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0)
-      return;
-    if (!parseHash(location.hash).active) return;
-    if (!(event.target instanceof Element) || !event.target.closest('a[href="#top"]')) return;
-    event.preventDefault();
-    event.stopPropagation();
-    window.scrollTo({ top: 0 });
-  };
-
   private updateCount(tab: HTMLElement): void {
     const phase = this.phase;
     if (phase.status === 'ready') {
@@ -239,7 +223,6 @@ class Controller {
 
     if (this.ui?.shadowHost.isConnected && this.ui.shadowHost.parentElement === boundary) {
       alignWithNav(nav, this.ui.shadowHost);
-      alignWithHeader(this.ui.shadowHost);
       this.render();
       return;
     }

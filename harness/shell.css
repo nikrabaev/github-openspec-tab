@@ -107,42 +107,6 @@ body {
   border-bottom-color: var(--bgColor-default);
 }
 
-/* GitHub's compact header, fixed to the top of the window once the tab bar has scrolled away. */
-.shell-fixed {
-  position: fixed;
-  inset: 0 0 auto;
-  z-index: 11;
-  box-sizing: border-box;
-  font-size: 12px;
-  color: var(--fgColor-muted);
-  background: var(--bgColor-default);
-  border-bottom: 1px solid var(--borderColor-default);
-  box-shadow: var(--shadow-resting-small);
-}
-
-.shell-fixed[hidden] {
-  display: none;
-}
-
-.shell-fixed-content {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  box-sizing: border-box;
-  max-width: 1280px;
-  height: 100%;
-  margin: 0 auto;
-  padding: 0 32px;
-}
-
-.shell-fixed-title {
-  font-size: 14px;
-}
-
-.shell-fixed-title strong {
-  color: var(--fgColor-default);
-}
-
 .shell-counter {
   min-width: 20px;
   padding: 0 6px;
@@ -167,7 +131,6 @@ body {
   display: none;
 }
 
-html[data-wide] .shell-pr,
-html[data-wide] .shell-fixed-content {
+html[data-wide] .shell-pr {
   max-width: none;
 }

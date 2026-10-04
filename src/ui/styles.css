@@ -49,13 +49,16 @@
   --line-added: var(--diffBlob-additionLine-bgColor, #dafbe1);
   --line-removed: var(--diffBlob-deletionLine-bgColor, #ffebe9);
 
+  /* The pull request header fixed to the top of the window: sticky headers stop below it. */
+  --pull-head-height: 60px;
+
   /* The host page can line the tab up with its own header by setting these on the host element. */
-  /* The height of a bar the page fixes to the top of the window: sticky headers stop below it. */
-  --page-top: var(--openspec-sticky-top, 0px);
+  --gutter-start: var(--openspec-gutter-start, 16px);
+  --gutter-end: var(--openspec-gutter-end, 16px);
   box-sizing: border-box;
   max-width: var(--openspec-max-width, 1280px);
   margin: 0 auto;
-  padding: 20px var(--openspec-gutter-end, 16px) 96px var(--openspec-gutter-start, 16px);
+  padding: 20px var(--gutter-end) 96px var(--gutter-start);
   color: var(--fg);
   font-family: var(
     --fontStack-system,
@@ -75,13 +78,15 @@
 
 @media (min-width: 768px) {
   .openspec-tab {
-    padding-inline: var(--openspec-gutter-start, 24px) var(--openspec-gutter-end, 24px);
+    --gutter-start: var(--openspec-gutter-start, 24px);
+    --gutter-end: var(--openspec-gutter-end, 24px);
   }
 }
 
 @media (min-width: 1012px) {
   .openspec-tab {
-    padding-inline: var(--openspec-gutter-start, 32px) var(--openspec-gutter-end, 32px);
+    --gutter-start: var(--openspec-gutter-start, 32px);
+    --gutter-end: var(--openspec-gutter-end, 32px);
   }
 }
 
@@ -134,7 +139,7 @@ button {
 }
 
 [data-item] {
-  scroll-margin-top: calc(var(--page-top) + 16px);
+  scroll-margin-top: calc(var(--pull-head-height) + 16px);
 }
 
 [data-item]:focus {
@@ -209,12 +214,12 @@ kbd {
    reaching it does not scroll the page. */
 .outline-resizer {
   position: sticky;
-  top: calc(var(--page-top) + 12px);
+  top: calc(var(--pull-head-height) + 12px);
   align-self: stretch;
   justify-self: center;
   width: 12px;
   height: auto;
-  max-height: calc(100vh - var(--page-top) - 24px);
+  max-height: calc(100vh - var(--pull-head-height) - 24px);
   margin: 0;
   padding: 0 5px;
   background: transparent content-box;
@@ -267,15 +272,152 @@ kbd {
   }
 }
 
+/* ---------- Pull request header ---------- */
+
+/* Where the tab starts. Once this is above the window, the header shows. */
+.pull-head-marker {
+  height: 1px;
+  margin-bottom: -1px;
+  visibility: hidden;
+}
+
+/* Sizes, spacing and colours are those of GitHub's own compact pull request header. */
+.pull-head {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 11;
+  height: var(--pull-head-height);
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow-resting-small, 0 1px 1px 0 #1f23280a, 0 1px 2px 0 #1f232808);
+}
+
+.pull-head[hidden] {
+  display: none;
+}
+
+/* Lined up with the tab below it. */
+.pull-head-content {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  max-width: var(--openspec-max-width, 1280px);
+  height: 100%;
+  margin: 0 auto;
+  padding-inline: var(--gutter-start) var(--gutter-end);
+}
+
+.pull-state {
+  display: inline-flex;
+  flex: none;
+  gap: 4px;
+  align-items: center;
+  height: 32px;
+  padding: 0 12px;
+  font-weight: 600;
+  line-height: 16px;
+  color: var(--fgColor-onEmphasis, #ffffff);
+  white-space: nowrap;
+  border-radius: 999px;
+}
+
+.pull-state-open {
+  background: var(--bgColor-open-emphasis, #1f883d);
+}
+
+.pull-state-draft {
+  background: var(--bgColor-draft-emphasis, #59636e);
+}
+
+.pull-state-merged {
+  background: var(--bgColor-done-emphasis, #8250df);
+}
+
+.pull-state-closed {
+  background: var(--bgColor-closed-emphasis, #cf222e);
+}
+
+.pull-head-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.pull-head-title {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  margin-bottom: -4px;
+  line-height: 21px;
+}
+
+.pull-head-title button {
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+  font-weight: 600;
+  text-align: start;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: none;
+  border: 0;
+}
+
+.pull-head-title span {
+  flex: none;
+  color: var(--fg-muted);
+}
+
+.pull-head-summary {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  height: 28px;
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--fg-muted);
+  white-space: nowrap;
+}
+
+.pull-head-summary > * {
+  flex: none;
+}
+
+.pull-author {
+  font-weight: 600;
+  color: inherit;
+  text-decoration: underline;
+}
+
+.pull-author:hover {
+  color: var(--fg-accent);
+}
+
+.pull-branch {
+  padding: 2px 6px;
+  font-family: var(--mono);
+  color: var(--fg-accent);
+  background: var(--bgColor-accent-muted, #ddf4ff);
+  border-radius: 6px;
+}
+
+/* A long branch name gives way before anything else in the line. */
+.pull-head-summary > .pull-branch-head {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* ---------- Outline ---------- */
 
 .outline {
   position: sticky;
-  top: calc(var(--page-top) + 12px);
+  top: calc(var(--pull-head-height) + 12px);
   display: flex;
   flex-direction: column;
   gap: 12px;
-  max-height: calc(100vh - var(--page-top) - 24px);
+  max-height: calc(100vh - var(--pull-head-height) - 24px);
   min-width: 0;
   font-size: 13px;
 }
@@ -732,12 +874,12 @@ button.flag:hover {
   min-width: 0;
 }
 
-/* Stays at the top of the window, below the page's fixed header, while its section is being
+/* Stays at the top of the window, below the pull request header, while its section is being
    read. The space above the title is for when it is stuck; the negative margin keeps it where
    it was when it is not. */
 .section-head {
   position: sticky;
-  top: var(--page-top);
+  top: var(--pull-head-height);
   z-index: 3;
   display: flex;
   flex-wrap: wrap;
@@ -954,7 +1096,7 @@ button.flag:hover {
    and its actions in view. */
 .req-head {
   position: sticky;
-  top: calc(var(--page-top) + var(--section-head-height, 48px));
+  top: calc(var(--pull-head-height) + var(--section-head-height, 48px));
   z-index: 2;
   display: flex;
   flex-wrap: wrap;
@@ -979,7 +1121,7 @@ button.flag:hover {
 
 /* A jump to a requirement stops below the section header, not under it. */
 .req[data-item] {
-  scroll-margin-top: calc(var(--page-top) + var(--section-head-height, 48px) + 12px);
+  scroll-margin-top: calc(var(--pull-head-height) + var(--section-head-height, 48px) + 12px);
 }
 
 .req-head h4 {
