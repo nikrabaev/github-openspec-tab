@@ -1,0 +1,3 @@
+- [x] Raise the dock confirmation timeout
+- [ ] Retry once before showing an error
+- [~] Decide whether the retry counts as a second attempt in the audit trail
