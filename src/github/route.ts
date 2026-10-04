@@ -75,6 +75,13 @@ export function diffFileUrl(pull: PullRef, path: string): string {
   return `${repoUrl(pull)}/pull/${pull.number}/files#diff-${sha256Hex(path)}`;
 }
 
+/** A branch of a repository (`owner/name`), as its file tree. */
+export function treeUrl(repo: string, ref: string): string {
+  return `https://github.com/${repo}/tree/${encodePath(ref)}`;
+}
+
+export const userUrl = (login: string) => `https://github.com/${encodeURIComponent(login)}`;
+
 export function blobUrl(pull: PullRef, commit: string, path: string, line?: number): string {
   return `${repoUrl(pull)}/blob/${commit}/${encodePath(path)}${line ? `?plain=1#L${line}` : ''}`;
 }

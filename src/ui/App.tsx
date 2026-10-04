@@ -11,6 +11,7 @@ import { HelpDialog } from './components/Help';
 import { Outline } from './components/Outline';
 import { OverviewCard } from './components/Overview';
 import { ProposalSection } from './components/Proposal';
+import { PullHeader } from './components/PullHeader';
 import { EmptyState, ErrorState, LoadingState } from './components/States';
 import { TasksSection } from './components/Tasks';
 import {
@@ -177,8 +178,8 @@ function Ready({
       }
       let active = items[0];
       for (const item of items) {
-        // An item counts once it is near where a jump would put it: under the top of the
-        // window or the page's fixed header, or under the sticky header of the section it is in.
+        // An item counts once it is near where a jump would put it: under the pull request
+        // header at the top of the window, or under the sticky header of the section it is in.
         const line = (Number.parseFloat(getComputedStyle(item).scrollMarginTop) || 0) + 32;
         if (item.getBoundingClientRect().top <= line) active = item;
         else break;
@@ -282,6 +283,7 @@ function Ready({
       <ReviewContext.Provider value={reviewValue}>
         <CommentsContext.Provider value={comments}>
           <DiffViewContext.Provider value={prefs.diffView}>
+            <PullHeader pull={data.pull} facts={data.facts} />
             <div className="layout" ref={root}>
               <Outline
                 items={visibleOutline}

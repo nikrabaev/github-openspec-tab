@@ -109,9 +109,8 @@ export function ReadToggle({ id, hash, compact }: { id: string; hash: string; co
   );
 }
 
-/** Copy a deep link to an item of the tab. */
-export function CopyLink({ id, label = 'Copy link' }: { id: string; label?: string }) {
-  const { data } = usePull();
+/** A button that copies a piece of text and says so for a moment. */
+export function CopyButton(props: { text: string; label: string; done: string; icon: ReactNode }) {
   const [copied, setCopied] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => () => clearTimeout(timer.current), []);
@@ -119,11 +118,11 @@ export function CopyLink({ id, label = 'Copy link' }: { id: string; label?: stri
     <button
       type="button"
       className="icon-button"
-      title={label}
-      aria-label={copied ? 'Link copied' : label}
+      title={props.label}
+      aria-label={copied ? props.done : props.label}
       onClick={async () => {
         try {
-          await navigator.clipboard.writeText(deepLink(data.pull, id));
+          await navigator.clipboard.writeText(props.text);
           setCopied(true);
           clearTimeout(timer.current);
           timer.current = setTimeout(() => setCopied(false), 1500);
@@ -132,11 +131,24 @@ export function CopyLink({ id, label = 'Copy link' }: { id: string; label?: stri
         }
       }}
     >
-      {copied ? <CheckIcon /> : <LinkIcon />}
+      {copied ? <CheckIcon /> : props.icon}
       <span className="sr-only" aria-live="polite">
-        {copied ? 'Link copied' : ''}
+        {copied ? props.done : ''}
       </span>
     </button>
+  );
+}
+
+/** Copy a deep link to an item of the tab. */
+export function CopyLink({ id, label = 'Copy link' }: { id: string; label?: string }) {
+  const { data } = usePull();
+  return (
+    <CopyButton
+      text={deepLink(data.pull, id)}
+      label={label}
+      done="Link copied"
+      icon={<LinkIcon />}
+    />
   );
 }
 

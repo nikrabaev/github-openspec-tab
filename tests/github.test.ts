@@ -146,11 +146,27 @@ function fakeGitHub(fixture: string, options: { sessionWorks?: boolean } = {}) {
     async api(path) {
       calls.push(path);
       if (/\/pulls\/\d+$/.test(path)) {
+        // A draft from a fork, with the fields of GitHub's answer that the loader reads.
         return ok({
           state: 'open',
           merged: false,
-          base: { sha: BASE_TIP, ref: 'main' },
-          head: { sha: HEAD },
+          title: 'Group rides: unlock and bill several bikes together',
+          draft: true,
+          commits: 9,
+          user: { login: 'mira' },
+          merged_by: null,
+          base: {
+            sha: BASE_TIP,
+            ref: 'main',
+            label: 'pedalway:main',
+            repo: { full_name: 'pedalway/pedalway' },
+          },
+          head: {
+            sha: HEAD,
+            ref: 'bks-142-group-rides',
+            label: 'mira:bks-142-group-rides',
+            repo: { full_name: 'mira/pedalway' },
+          },
         });
       }
       if (path.includes('/compare/'))
@@ -205,8 +221,18 @@ describe('loadPull', () => {
     expect(loaded.facts).toEqual({
       baseSha: MERGE_BASE,
       headSha: HEAD,
-      baseRef: 'main',
       state: 'open',
+      title: 'Group rides: unlock and bill several bikes together',
+      draft: true,
+      author: 'mira',
+      mergedBy: null,
+      commits: 9,
+      base: { label: 'pedalway:main', ref: 'main', repo: 'pedalway/pedalway' },
+      head: {
+        label: 'mira:bks-142-group-rides',
+        ref: 'bks-142-group-rides',
+        repo: 'mira/pedalway',
+      },
     });
     // Same result as building the model straight from the fixture files.
     const direct = modelOf('showcase').model;
