@@ -118,7 +118,7 @@ export function ProgressBar({
   total: number;
   label: string;
 }) {
-  const percent = total === 0 ? 0 : Math.round((done / total) * 100);
+  const fraction = total === 0 ? 0 : Math.min(1, done / total);
   return (
     <div
       className={done === total && total > 0 ? 'bar is-complete' : 'bar'}
@@ -128,7 +128,7 @@ export function ProgressBar({
       aria-valuemax={total}
       aria-valuenow={done}
     >
-      <span style={{ width: `${percent}%` }} />
+      <span style={{ transform: `scaleX(${fraction})` }} />
     </div>
   );
 }

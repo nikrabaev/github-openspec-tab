@@ -6,7 +6,7 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": ["**", "!fixtures", "!docs/screenshots", "!pnpm-lock.yaml"]
+    "includes": ["**", "!fixtures", "!docs/screenshots", "!pnpm-lock.yaml", "!.impeccable"]
   },
   "formatter": {
     "indentStyle": "space",

@@ -279,10 +279,9 @@ kbd {
 .bar > span {
   display: block;
   height: 100%;
-  min-width: 0;
   background: var(--bgColor-accent-emphasis, #0969da);
-  border-radius: 3px;
-  transition: width 0.2s ease;
+  transform-origin: 0 50%;
+  transition: transform 0.2s ease;
 }
 
 .bar.is-complete > span {
@@ -893,23 +892,22 @@ button.flag:hover {
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 10px;
-  box-shadow: inset 3px 0 0 var(--req-line, transparent);
 }
 
 .req-added {
-  --req-line: var(--added-line);
+  border-color: var(--borderColor-success-muted, #4ac26b66);
 }
 
 .req-modified {
-  --req-line: var(--modified-line);
+  border-color: var(--borderColor-attention-muted, #d4a72c66);
 }
 
 .req-removed {
-  --req-line: var(--removed-line);
+  border-color: var(--borderColor-danger-muted, #ff818266);
 }
 
 .req-renamed {
-  --req-line: var(--renamed-line);
+  border-color: var(--borderColor-done-muted, #c297ff66);
 }
 
 .req-head {
@@ -917,7 +915,7 @@ button.flag:hover {
   flex-wrap: wrap;
   gap: 6px 10px;
   align-items: center;
-  padding: 12px 12px 0 19px;
+  padding: 12px 12px 0 16px;
 }
 
 .req-head h4 {
@@ -940,7 +938,7 @@ button.flag:hover {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 10px 16px 16px 19px;
+  padding: 10px 16px 16px;
 }
 
 .req-body:empty {
@@ -1355,7 +1353,6 @@ li.blk-removed {
 
 .req-unchanged {
   border-style: dashed;
-  box-shadow: none;
 }
 
 .req-unchanged .req-head h4 {
@@ -1365,8 +1362,8 @@ li.blk-removed {
 .callout {
   padding: 10px 14px;
   background: var(--bg-muted);
+  border: 1px solid var(--border-muted);
   border-radius: 8px;
-  box-shadow: inset 3px 0 0 var(--border);
 }
 
 .callout-title {
@@ -1382,7 +1379,7 @@ li.blk-removed {
 
 .callout-accent {
   background: var(--bgColor-accent-muted, #ddf4ff);
-  box-shadow: inset 3px 0 0 var(--borderColor-accent-emphasis, #0969da);
+  border-color: var(--borderColor-accent-muted, #54aeff66);
 }
 
 .callout-accent .callout-title {
@@ -1392,7 +1389,7 @@ li.blk-removed {
 .callout-attention {
   padding: 14px 16px;
   background: var(--modified-bg);
-  box-shadow: inset 3px 0 0 var(--modified-line);
+  border-color: var(--borderColor-attention-muted, #d4a72c66);
 }
 
 .callout-attention .callout-title {
@@ -1402,7 +1399,7 @@ li.blk-removed {
 
 .callout-danger {
   background: var(--removed-bg);
-  box-shadow: inset 3px 0 0 var(--removed-line);
+  border-color: var(--borderColor-danger-muted, #ff818266);
 }
 
 .problems {
@@ -1413,7 +1410,7 @@ li.blk-removed {
 }
 
 .req > .problems {
-  padding: 10px 16px 0 19px;
+  padding: 10px 16px 0;
 }
 
 .problem {
@@ -1830,7 +1827,6 @@ button.chip:hover {
 
 .task.is-next {
   background: var(--modified-bg);
-  box-shadow: inset 2px 0 0 var(--modified-line);
 }
 
 .task-number {
