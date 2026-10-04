@@ -1,87 +1,90 @@
+<div align="center">
+
+<img src="public/icon/128.png" width="88" height="88" alt="">
+
 # OpenSpec Tab for GitHub
 
-A browser extension that adds an **OpenSpec** tab to GitHub pull requests, right after "Files changed".
+**Review [OpenSpec](https://github.com/Fission-AI/OpenSpec) changes as requirements and scenarios, right inside the pull request.**
 
-The tab shows the [OpenSpec](https://github.com/Fission-AI/OpenSpec) changes in the pull request (everything under `openspec/`) as requirements and scenarios you can read and review, instead of raw Markdown diffs you open one file at a time.
+A browser extension that adds an **OpenSpec** tab to every GitHub pull request, next to "Files changed".
 
-![The overview of a change: status, counts, task progress and the reason for it](docs/readme/overview-light.png)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+![Manifest V3](https://img.shields.io/badge/manifest-v3-4c8bf5.svg)
+![OpenSpec 1.14](https://img.shields.io/badge/OpenSpec-1.14-2da44e.svg)
 
-The pictures on this page show made-up data from the fixtures in this repository.
+</div>
 
-## What the tab shows
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/readme/hero-dark.png">
+  <img src="docs/readme/hero-light.png" alt="The OpenSpec tab on a pull request: an outline on the left, and the overview of a change with its status, counts and task progress">
+</picture>
 
-**Each change, top to bottom:** an overview card, the proposal, the design, one section per spec with its requirements, and the tasks. A sticky outline on the left follows you as you scroll.
+<table>
+  <tr>
+    <td width="50%"><img src="docs/readme/modified-inline-light.png" alt="A modified requirement with removed words struck and added words highlighted"></td>
+    <td width="50%"><img src="docs/readme/modified-split-light.png" alt="The same requirement shown side by side, old against new"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>What changed in a requirement, word by word</sub></td>
+    <td align="center"><sub>Or side by side, aligned step by step</sub></td>
+  </tr>
+</table>
 
-**Modified requirements, three ways.** A `MODIFIED` requirement in OpenSpec is the full replacement text, so GitHub shows it as all new. The tab compares it with the requirement in the base spec and shows what actually changed:
+<sub>All pictures show made-up data from the fixtures in this repository.</sub>
 
-![A modified requirement with word-level changes](docs/readme/modified-inline-light.png)
+## Why
 
-- **Inline:** removed words struck, added words highlighted, on the rendered text (bold, code and links are kept).
-- **Side by side:** old against new, aligned scenario by scenario and step by step.
-- **New only:** the new text, clean.
+Reviewing an OpenSpec change on GitHub means reading raw Markdown diffs:
 
-![The same requirement side by side](docs/readme/modified-split-light.png)
+- You click "Display the rich diff" on every file, one at a time.
+- A `MODIFIED` requirement is a full replacement, so the diff shows it as all new. You cannot see what actually changed.
+- There is no side-by-side view of rendered Markdown.
 
-Scenarios that were added, removed or changed are marked. Press `1`, `2` or `3` to switch.
+This tab reads the same files and shows them the way a reviewer thinks about them: what is the change, which requirements does it add, modify, remove or rename, and what exactly is different.
 
-**Everything else on a requirement card**
+## What you get
 
-- A coloured label: added, modified, removed or renamed.
-- SHALL, MUST, SHOULD and MAY styled so obligations stand out.
-- A link you can copy that points at this requirement.
-- "Comment", which opens the changed line in "Files changed" so you can leave a review comment.
-- Removed requirements show their old text dimmed, with Reason and Migration as callouts. Renamed ones show "old → new".
-- Requirements the change does not touch fold into "N unchanged requirements".
+- **An overview of each change:** a readable name, whether it is in progress or archived in this pull request, how many requirements it adds, modifies, removes and renames, task progress, and the first paragraph of "Why".
+- **Modified requirements, three ways:** word-level changes on the rendered text, side by side, or the new version only. Scenarios that were added, removed or changed are marked.
+- **Requirement cards:** a coloured label for the change type, SHALL / MUST / SHOULD / MAY styled so obligations stand out, a link you can copy, and "Comment", which opens the changed line in "Files changed".
+- **Scenarios as compact rows:** WHEN, THEN and AND in a keyword column, each scenario folded under its name.
+- **Removed and renamed requirements:** removed text is dimmed, with Reason and Migration as callouts. Renames show "old → new".
+- **Context without noise:** requirements the change does not touch fold into "N unchanged requirements".
+- **A structured proposal and design:** capability names jump to their spec, file paths link to the files, breaking changes are flagged, decisions are cards with their alternatives folded, risks sit beside their mitigations, and open questions are called out.
+- **Diagrams:** `*.excalidraw.svg` files in the change folder are shown inline, with zoom.
+- **Tasks:** progress overall and per group, with the next unchecked task highlighted.
+- **Review progress:** "Mark as read" on each section and requirement, remembered per pull request. If the author pushes a change to something you marked, it is flagged as changed since you read it.
+- **Glossary on hover:** if the repository has `docs/CONTEXT.md` (or `CONTEXT.md`), its terms are underlined and show their definition. Words the glossary says to avoid are underlined differently.
+- **Format problems, inline:** a requirement with no scenario, a `MODIFIED` requirement that matches nothing in the base spec, a `FROM:` without a `TO:`. A file that cannot be read as OpenSpec is shown as plain rendered Markdown.
+- **A sticky outline** with a filter and keyboard navigation.
+- **GitHub's own look:** the tab uses GitHub's colours, so it follows the light, dark and dimmed themes.
 
-**Proposal and design, structured**
-
-![The design: goals beside non-goals, decisions as cards](docs/readme/design-light.png)
-
-- Proposal: Why, What Changes, Capabilities and Impact as separate blocks. Capability names jump to their spec, file paths link to the files, breaking changes are flagged.
-- Design: goals beside non-goals, each decision as a card with its alternatives folded, risks against mitigations, open questions called out.
-- `*.excalidraw.svg` files in the change folder are shown inline, with zoom.
-
-**Tasks**
-
-![Tasks with progress per group and the next task highlighted](docs/readme/tasks-light.png)
-
-**Review progress.** "Mark as read" on each section and requirement, remembered per pull request in your browser. If the author pushes a change to something you marked, it is flagged as changed since you read it.
-
-**Glossary.** If the repository has `docs/CONTEXT.md` (or `CONTEXT.md`), its terms are underlined in the text and show their definition on hover. Words the glossary says to avoid are underlined differently.
-
-**Format problems.** A requirement with no scenario, a `MODIFIED` requirement that matches nothing in the base spec, a `FROM:` without a `TO:` and similar mistakes are shown next to the requirement they concern. A file the tab cannot read as OpenSpec is shown as plain rendered Markdown.
-
-**Themes.** The tab uses GitHub's own colours, so it follows light, dark and dimmed themes.
-
-![The same view in GitHub's dark theme](docs/readme/modified-inline-dark.png)
-
-### What counts as a change
-
-| In the pull request | Shown as | Before | After |
-| --- | --- | --- | --- |
-| A change folder under `openspec/changes/` | In progress | The spec on the base branch | The base spec with the deltas applied |
-| A change moved to `openspec/changes/archive/` | Archived in this PR | The spec on the base branch | What the change's deltas produce |
-| A spec edited with no change folder | Specs edited directly | The spec on the base branch | The spec on the PR branch |
-
-Several changes in one pull request are shown one after another. Changes archived in the same pull request are applied in date order, so a later one is compared with the result of the earlier one. Anything in a spec that the changes do not account for appears under "Specs edited directly".
-
-The number on the tab is the count of requirement changes. A pull request with no OpenSpec files shows 0 and an empty state.
-
-### Keyboard
-
-| Key | Action |
-| --- | --- |
-| `j` / `k` | Next / previous section or requirement |
-| `m` | Mark the current one as read |
-| `1` `2` `3` | Inline, side by side, new only |
-| `/` | Filter the outline |
-| `?` | Help |
+<table>
+  <tr>
+    <td width="50%"><img src="docs/readme/design-light.png" alt="The design section: goals beside non-goals, and decisions as cards"></td>
+    <td width="50%"><img src="docs/readme/tasks-light.png" alt="Tasks with a progress bar per group and the next task highlighted"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>The design: goals beside non-goals, decisions as cards</sub></td>
+    <td align="center"><sub>Tasks, with the next one highlighted</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/readme/overview-light.png" alt="The overview card of a change"></td>
+    <td width="50%"><img src="docs/readme/modified-inline-dark.png" alt="A modified requirement in GitHub's dark theme"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>The overview of a change</sub></td>
+    <td align="center"><sub>In GitHub's dark theme</sub></td>
+  </tr>
+</table>
 
 ## Install
 
-The extension is not in the browser stores yet. Build it and load it unpacked.
+The extension is not in the browser stores yet. Build it and load it unpacked. You need [Node.js](https://nodejs.org) 22 or later and [pnpm](https://pnpm.io).
 
 ```bash
+git clone https://github.com/nikrabaev/github-openspec-tab.git
+cd github-openspec-tab
 pnpm install
 pnpm build
 ```
@@ -94,15 +97,11 @@ pnpm build
 
 **Firefox**
 
-```bash
-pnpm build:firefox
-```
+Run `pnpm build:firefox`, open `about:debugging#/runtime/this-firefox`, choose **Load Temporary Add-on** and pick `.output/firefox-mv2/manifest.json`. The Firefox build compiles but has not been tested yet.
 
-Open `about:debugging#/runtime/this-firefox`, choose **Load Temporary Add-on** and pick `.output/firefox-mv2/manifest.json`. The Firefox build compiles but has not been tested yet.
+Then open any pull request on github.com and choose the **OpenSpec** tab.
 
-Then open any pull request on github.com.
-
-## Private repositories: add a token
+## Private repositories
 
 Public repositories work with no setup. For a private repository the tab needs a read-only token, because it asks GitHub's API which OpenSpec files the pull request changes.
 
@@ -112,7 +111,29 @@ Public repositories work with no setup. For a private repository the tab needs a
 4. Generate the token. An organisation may have to approve it first.
 5. Open the extension's settings (the **Add a token** button in the tab, or the extension's "Options") and paste it.
 
-Without a token the tab still shows up on private repositories and tells you a token is needed.
+Without a token the tab still shows up on a private repository and tells you one is needed.
+
+## Keyboard
+
+| Key | Action |
+| --- | --- |
+| `j` / `k` | Next / previous section or requirement |
+| `m` | Mark the current one as read |
+| `1` `2` `3` | Inline, side by side, new only |
+| `/` | Filter the outline |
+| `?` | Help |
+
+## What counts as a change
+
+| In the pull request | Shown as | Before | After |
+| --- | --- | --- | --- |
+| A change folder under `openspec/changes/` | In progress | The spec on the base branch | The base spec with the deltas applied |
+| A change moved to `openspec/changes/archive/` | Archived in this PR | The spec on the base branch | What the change's deltas produce |
+| A spec edited with no change folder | Specs edited directly | The spec on the base branch | The spec on the PR branch |
+
+Several changes in one pull request are shown one after another. Changes archived in the same pull request are applied in date order, so a later one is compared with the result of the earlier one. Anything in a spec that the changes do not account for appears under "Specs edited directly".
+
+The number on the tab is the count of requirement changes. A pull request with no OpenSpec files shows 0 and an empty state.
 
 ## How it works
 
@@ -126,9 +147,11 @@ Without a token the tab still shows up on private repositories and tells you a t
 
 ## Permissions and privacy
 
-- `https://github.com/*`: to add the tab and read files with your session.
-- `https://api.github.com/*`: to ask which OpenSpec files a pull request changes.
-- `storage`: for the token, your review progress and your view preference.
+| Permission | Why |
+| --- | --- |
+| `https://github.com/*` | Add the tab and read files with your session |
+| `https://api.github.com/*` | Ask which OpenSpec files a pull request changes |
+| `storage` | Keep the token, your review progress and your view preference |
 
 The token is kept in the browser's extension storage. Only the extension's background worker reads it, and it attaches it only to requests to api.github.com that are on the tab's short allowlist. It is never put in a URL, never logged and never given to a web page. Nothing is sent anywhere except GitHub.
 
@@ -162,8 +185,6 @@ To check the built extension against the live site:
 pnpm build && pnpm exec tsx scripts/smoke.ts https://github.com/Fission-AI/OpenSpec/pull/2012
 ```
 
-**Where things are**
-
 | Path | What |
 | --- | --- |
 | `src/openspec/` | Parsers, delta application and the pull request model. No browser APIs. |
@@ -174,7 +195,7 @@ pnpm build && pnpm exec tsx scripts/smoke.ts https://github.com/Fission-AI/OpenS
 | `harness/` | The dev harness page. |
 | `fixtures/` | Synthetic OpenSpec repositories used by tests, harness and screenshots. |
 
-**Fixtures.** Everything under `fixtures/` is invented (a bike-share service). Please keep it that way: do not add content from real private repositories.
+Everything under `fixtures/` is invented (a bike-share service). Please keep it that way: do not add content from real private repositories.
 
 ## License
 

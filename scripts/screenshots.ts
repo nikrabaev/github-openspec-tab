@@ -17,6 +17,8 @@ const GROUP_RIDES = 'c/bks-142-group-rides';
 interface Shot {
   name: string;
   fixture?: string;
+  /** Hide the harness controls. */
+  clean?: boolean;
   state?: string;
   view?: 'inline' | 'split' | 'new';
   /** Item the page is scrolled to. */
@@ -28,6 +30,8 @@ interface Shot {
 }
 
 const SHOTS: Shot[] = [
+  // The page from the top: the tab in the tab bar, the outline and the overview of one change.
+  { name: 'hero', fixture: 'focus', clean: true, hero: ['light', 'dark'] },
   { name: 'overview', target: `${GROUP_RIDES}/overview`, hero: ['light'] },
   { name: 'proposal', target: `${GROUP_RIDES}/proposal` },
   { name: 'design', target: `${GROUP_RIDES}/design`, hero: ['light'] },
@@ -138,6 +142,7 @@ const THEMES = ['light', 'dark'] as const;
 
 async function capture(page: Page, base: string, shot: Shot, theme: string, file: string) {
   const query = new URLSearchParams({ fixture: shot.fixture ?? 'showcase', theme });
+  if (shot.clean) query.set('clean', '1');
   if (shot.state) query.set('state', shot.state);
   if (shot.view) query.set('view', shot.view);
   await page.goto(`${base}/?${query}${shot.target ? `#openspec/${shot.target}` : '#openspec'}`);

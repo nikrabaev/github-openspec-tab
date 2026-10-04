@@ -30,6 +30,23 @@ for (const [file, content] of Object.entries(raw)) {
 }
 if (!fixtures.has('empty')) fixtures.set('empty', { base: {}, head: {} });
 
+// "focus": the showcase pull request reduced to its one change in progress, for pictures
+// that show a single change from the top of the page.
+const showcase = fixtures.get('showcase');
+if (showcase) {
+  const keep = ([path]: [string, string]) => !path.includes('bks-131-dock-reservations');
+  const base = Object.fromEntries(Object.entries(showcase.base).filter(keep));
+  const head = Object.fromEntries(Object.entries(showcase.head).filter(keep));
+  for (const path of [
+    'openspec/specs/dock-availability/spec.md',
+    'openspec/specs/rider-notifications/spec.md',
+    'openspec/project.md',
+  ]) {
+    if (base[path] !== undefined) head[path] = base[path];
+  }
+  fixtures.set('focus', { base, head });
+}
+
 const pull = { owner: 'pedalway', repo: 'pedalway', number: 128 };
 
 function loadFixture(name: string): LoadedPull {
@@ -48,6 +65,8 @@ function loadFixture(name: string): LoadedPull {
 }
 
 const params = new URLSearchParams(location.search);
+/** `?clean=1` hides the harness controls, for pictures. */
+const clean = params.has('clean');
 const THEMES: Record<string, [string, string, string]> = {
   light: ['light', 'light', 'dark'],
   dark: ['dark', 'light', 'dark'],
@@ -148,7 +167,7 @@ function Harness() {
         <strong>
           {pull.owner} / {pull.repo}
         </strong>
-        <div className="shell-controls">
+        <div className="shell-controls" hidden={clean}>
           {select('Fixture', fixture, [...fixtures.keys()].sort(), setFixture)}
           {select(
             'State',
@@ -167,7 +186,9 @@ function Harness() {
           )}
           {select('Theme', theme, Object.keys(THEMES), setTheme)}
         </div>
-        <span className="shell-note">Dev harness: fixture data, not a real pull request</span>
+        {!clean && (
+          <span className="shell-note">Dev harness: fixture data, not a real pull request</span>
+        )}
       </div>
       <div className="shell-pr">
         <h1>
