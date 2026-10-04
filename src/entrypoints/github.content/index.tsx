@@ -22,6 +22,7 @@ import {
   showNativeContent,
 } from '@/github/dom';
 import { LoadError, loadPull } from '@/github/load';
+import { DEFAULT_PREFERENCES, type Preferences } from '@/github/messages';
 import {
   HASH_PREFIX,
   hashFor,
@@ -49,6 +50,11 @@ class Controller {
   private pull: PullRef | null = null;
   private phase: Phase = { status: 'unknown' };
   private loadedAt = 0;
+  /**
+   * What the reader chose last time. Read when the script starts and again with each pull
+   * request, so the skeleton and the tab's first render are already laid out that way.
+   */
+  private preferences: Preferences = DEFAULT_PREFERENCES;
   private generation = 0;
   private target: string | null = null;
   private ui: ShadowRootContentScriptUi<Root> | null = null;
@@ -81,6 +87,7 @@ class Controller {
         void this.load(this.pull, true);
     });
     this.ctx.onInvalidated(() => this.teardown(true));
+    void this.readPreferences();
     this.sync();
   }
 
@@ -329,7 +336,10 @@ class Controller {
         }
       }
       if (!quiet) this.setPhase({ status: 'loading' });
-      const data = await loadPull(pull, extensionBackend, ROOT);
+      const [data] = await Promise.all([
+        loadPull(pull, extensionBackend, ROOT),
+        this.readPreferences(),
+      ]);
       if (!current()) return;
       this.loadedAt = Date.now();
       this.setPhase({ status: 'ready', data });
@@ -343,13 +353,22 @@ class Controller {
     }
   }
 
+  private async readPreferences(): Promise<void> {
+    const stored = await send({ type: 'prefs-get' }).catch(() => null);
+    if (!stored) return;
+    // A background script from an older build does not know the newer preferences.
+    this.preferences = { ...DEFAULT_PREFERENCES, ...stored };
+    this.render();
+  }
+
   private services: Services = {
     loadReview: (key) => send({ type: 'review-get', key }),
     saveReview: async (key, state) => {
       await send({ type: 'review-set', key, state });
     },
-    loadPreferences: () => send({ type: 'prefs-get' }),
+    preferences: () => this.preferences,
     savePreferences: async (prefs) => {
+      this.preferences = prefs;
       await send({ type: 'prefs-set', prefs });
     },
     openOptions: () => void send({ type: 'open-options' }),

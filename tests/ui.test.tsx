@@ -9,11 +9,13 @@ import {
 } from '../harness/fakeComments';
 import type { CommentsSnapshot } from '../src/github/comments';
 import type { LoadedPull, PullFacts } from '../src/github/load';
+import { DEFAULT_PREFERENCES } from '../src/github/messages';
 import { parseGlossary } from '../src/openspec';
 import { App } from '../src/ui/App';
 import { isCompact, layoutRows, pairHalves } from '../src/ui/components/common';
 import { when } from '../src/ui/components/Discussion';
 import { PullHeader } from '../src/ui/components/PullHeader';
+import { fitOutlineWidth } from '../src/ui/components/Resizer';
 import type { Services } from '../src/ui/context';
 import { Markdown, MarkdownProvider } from '../src/ui/markdown/Markdown';
 import { looksLikePath, resolveRepoPath } from '../src/ui/markdownOptions';
@@ -24,7 +26,7 @@ import { FIXTURES, modelOf, readTree } from './helpers/fixtures';
 const services: Services = {
   loadReview: async () => null,
   saveReview: async () => {},
-  loadPreferences: async () => ({ diffView: 'inline' }),
+  preferences: () => DEFAULT_PREFERENCES,
   savePreferences: async () => {},
   openOptions: () => {},
   navigate: () => {},
@@ -114,6 +116,31 @@ describe('App', () => {
     expect(short).not.toContain('is-half');
     expect(short).not.toContain('is-stacked');
     expect(short).toContain('class="task-groups is-compact"');
+  });
+
+  it('lays the outline out as wide as the reader left it, with an edge to drag', () => {
+    const html = toHtml(
+      <App
+        state={{ status: 'ready', data: loaded('showcase') }}
+        repo="pedalway/pedalway"
+        target={null}
+        services={{ ...services, preferences: () => ({ diffView: 'split', outlineWidth: 340 }) }}
+      />,
+    );
+    expect(html).toContain('style="--outline-width:340px"');
+    expect(html).toMatch(/<hr class="outline-resizer"[^>]*aria-valuenow="340"/);
+    expect(html).toContain('class="content view-split"');
+    expect(render('showcase')).toContain('style="--outline-width:272px"');
+    // The skeleton shown while loading is laid out the same way.
+    const loading = toHtml(
+      <App
+        state={{ status: 'loading' }}
+        repo="pedalway/pedalway"
+        target={null}
+        services={{ ...services, preferences: () => ({ diffView: 'split', outlineWidth: 340 }) }}
+      />,
+    );
+    expect(loading).toMatch(/class="layout" aria-busy="true"[^>]*style="--outline-width:340px"/);
   });
 
   it('puts a proposal in two columns of about the same length', () => {
@@ -484,6 +511,16 @@ describe('helpers', () => {
     expect(isCompact('x'.repeat(101), 100)).toBe(false);
     expect(isCompact('| a | b |\n| --- | --- |\n| 1 | 2 |', 1000)).toBe(false);
     expect(isCompact('Text\n\n```ts\nconst a = 1;\n```', 1000)).toBe(false);
+  });
+
+  it('keeps the outline between its limits, and under two fifths of the page', () => {
+    expect(fitOutlineWidth(340, 1216)).toBe(340);
+    expect(fitOutlineWidth(100, 1216)).toBe(220);
+    expect(fitOutlineWidth(900, 2000)).toBe(600);
+    expect(fitOutlineWidth(500, 1000)).toBe(400);
+    // A page too narrow for two fifths to hold the controls: the least it can be.
+    expect(fitOutlineWidth(300, 400)).toBe(220);
+    expect(fitOutlineWidth(301.6, 1216)).toBe(302);
   });
 
   it('tells dark backgrounds from light ones', () => {

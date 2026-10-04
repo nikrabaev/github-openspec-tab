@@ -33,7 +33,8 @@ export interface CommentServices {
 export interface Services {
   loadReview(key: string): Promise<ReviewState | null>;
   saveReview(key: string, state: ReviewState): Promise<void>;
-  loadPreferences(): Promise<Preferences>;
+  /** What the reader chose last time. The host has it at hand, so the first render follows it. */
+  preferences(): Preferences;
   savePreferences(preferences: Preferences): Promise<void>;
   openOptions(): void;
   /** Point the URL at an item (or at the tab itself), without leaving the page. */

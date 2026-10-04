@@ -45,9 +45,11 @@ export interface ReviewState {
 
 export interface Preferences {
   diffView: 'inline' | 'split' | 'new';
+  /** How wide the reader made the outline, in pixels. */
+  outlineWidth: number;
 }
 
-export const DEFAULT_PREFERENCES: Preferences = { diffView: 'inline' };
+export const DEFAULT_PREFERENCES: Preferences = { diffView: 'inline', outlineWidth: 272 };
 
 export type Message =
   | { type: 'api'; path: string; etag?: string }
