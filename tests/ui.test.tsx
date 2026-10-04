@@ -97,26 +97,40 @@ describe('App', () => {
   it('puts a proposal in two columns of about the same length', () => {
     const html = render('longform');
     const columns = html.split('class="doc-column"');
-    // Why and What Changes on the left, Capabilities and Impact on the right.
+    // The opening lines, Why and What Changes on the left; Capabilities and Impact on the right.
+    expect(columns[1]).toContain('Ticket: BKS-150');
     expect(columns[1]).toContain('block-why');
     expect(columns[1]).toContain('block-what-changes');
     expect(columns[2]).toContain('block-capabilities');
     expect(columns[2]).toContain('block-impact');
   });
 
-  it('leads each capability with its name, linked to its spec', () => {
+  it('lists each capability as a row: name, id, new or modified, and what the delta does', () => {
     const html = render('longform');
-    for (const name of [
-      'refund-review',
-      'payment-provider-refund-webhooks',
-      'ride-billing',
-      'rider-notifications',
-      'receipts',
-    ]) {
-      expect(html, name).toMatch(
-        new RegExp(`<li><button[^>]*class="chip chip-capability[^"]*"[^>]*>.*?${name}</button> `),
-      );
-    }
+    const rows = html.split('<li class="cap-row">').slice(1);
+    expect(rows).toHaveLength(5);
+    const facts = rows.map((row) => [
+      /class="cap-name">([^<]+)</.exec(row)?.[1],
+      /class="cap-id">([^<]+)</.exec(row)?.[1],
+      /class="tag tag-(?:added|changed)">([^<]+)</.exec(row)?.[1],
+      [
+        ...(row.split('class="cap-text"')[0] ?? '').matchAll(
+          /class="count count-\w+"[^>]*>([^<]+)</g,
+        ),
+      ]
+        .map((match) => match[1])
+        .join(' '),
+    ]);
+    expect(facts).toEqual([
+      ['Refund review', 'refund-review', 'New', '+3'],
+      ['Payment provider refund webhooks', 'payment-provider-refund-webhooks', 'New', '+1'],
+      ['Ride billing', 'ride-billing', 'Modified', '+2 ~1'],
+      ['Rider notifications', 'rider-notifications', 'Modified', '+1 ~1'],
+      ['Receipts', 'receipts', 'Modified', '~1'],
+    ]);
+    // The name is a button that jumps to the capability's spec; the description follows it.
+    expect(rows[0]).toMatch(/<button type="button" class="cap-name">/);
+    expect(rows[0]).toContain('how a request that no automatic rule approved');
   });
 
   it('shows format problems inline and falls back to plain Markdown', () => {
@@ -243,6 +257,19 @@ describe('helpers', () => {
       ],
       'table',
       'alone',
+    ]);
+    // A short section beside a long one would leave a hole under it: both keep the full width.
+    const lopsided = layoutRows(
+      [
+        { name: 'context', size: 10 },
+        { name: 'goals', size: 3 },
+      ],
+      () => true,
+      (item) => item.size,
+    );
+    expect(lopsided).toEqual([
+      { full: { name: 'context', size: 10 } },
+      { full: { name: 'goals', size: 3 } },
     ]);
     expect(
       layoutRows(

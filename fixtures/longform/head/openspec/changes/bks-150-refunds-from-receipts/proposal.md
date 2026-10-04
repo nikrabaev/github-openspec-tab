@@ -1,5 +1,7 @@
 # Proposal: Refunds from receipts
 
+Ticket: BKS-150. The support numbers are from the September support report; the rule thresholds come from the dock event review in BKS-139.
+
 ## Why
 
 A rider who was charged for a ride that never really happened has one way to get the money back: write to support. An agent checks the dock records by hand and issues the refund in the payment provider's dashboard. It takes three to five working days, and in September it made up 41% of all support conversations. Most of these cases are not judgement calls, and the data to decide them is already in the ride record.

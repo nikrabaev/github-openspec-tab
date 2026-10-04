@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { deepLink } from '@/github/route';
-import type { Operation, Problem } from '@/openspec';
+import type { Counts, Operation, Problem } from '@/openspec';
 import { usePull, useReview } from '../context';
 import { AlertIcon, CheckIcon, InfoIcon, LinkIcon, StopIcon, SyncIcon } from '../icons';
 import { InlineMarkdown, TermScope } from '../markdown/Markdown';
@@ -18,6 +18,35 @@ export function OpLabel({ op }: { op: Operation }) {
 
 export function OpDot({ op }: { op: Operation }) {
   return <span className={`dot dot-${op}`} role="img" aria-label={OP_TEXT[op]} />;
+}
+
+/** How many requirements a capability's delta adds, modifies, removes and renames. */
+export function CountChips({ counts }: { counts: Counts }) {
+  const { added, modified, removed, renamed } = counts;
+  return (
+    <span className="counts">
+      {added > 0 && (
+        <span className="count count-added" title={`${added} added`}>
+          +{added}
+        </span>
+      )}
+      {modified > 0 && (
+        <span className="count count-modified" title={`${modified} modified`}>
+          ~{modified}
+        </span>
+      )}
+      {removed > 0 && (
+        <span className="count count-removed" title={`${removed} removed`}>
+          −{removed}
+        </span>
+      )}
+      {renamed > 0 && (
+        <span className="count count-renamed" title={`${renamed} renamed`}>
+          →{renamed}
+        </span>
+      )}
+    </span>
+  );
 }
 
 const SEVERITY_ICON = { error: StopIcon, warning: AlertIcon, info: InfoIcon } as const;
@@ -185,9 +214,9 @@ export type DocRow<T> = { full: T } | { left: T[]; right: T[] };
 /**
  * Lays a document's sections out for a wide window. Sections that can share a
  * row and follow one another are split into two columns of about the same
- * length, read down the left and then down the right, so a short section beside
- * a long one leaves no hole. A section that cannot share, or has no neighbour
- * that can, takes the full width.
+ * length, read down the left and then down the right. When no split comes out
+ * balanced, a column would end in a hole beside the other, so those sections
+ * each take the full width instead, as does any section that cannot share.
  */
 export function layoutRows<T>(
   items: readonly T[],
@@ -197,9 +226,9 @@ export function layoutRows<T>(
   const rows: DocRow<T>[] = [];
   let run: T[] = [];
   const flush = () => {
-    const [only] = run;
-    if (run.length > 1) rows.push(splitRun(run, weight));
-    else if (only !== undefined) rows.push({ full: only });
+    const columns = run.length > 1 ? splitRun(run, weight) : null;
+    if (columns) rows.push(columns);
+    else for (const item of run) rows.push({ full: item });
     run = [];
   };
   for (const item of items) {
@@ -214,6 +243,34 @@ export function layoutRows<T>(
   return rows;
 }
 
+/** The shorter column must be at least this much of the longer one. */
+const BALANCE = 0.5;
+
+/**
+ * Cuts a run where the two sides come out closest in weight, keeping the order.
+ * Null when even that cut leaves one side under half the other.
+ */
+function splitRun<T>(run: T[], weight: (item: T) => number): DocRow<T> | null {
+  const weights = run.map(weight);
+  const total = weights.reduce((sum, value) => sum + value, 0);
+  let cut = 1;
+  let best = Number.POSITIVE_INFINITY;
+  let bestLeft = 0;
+  let left = 0;
+  for (let i = 1; i < run.length; i++) {
+    left += weights[i - 1] ?? 0;
+    const difference = Math.abs(total - 2 * left);
+    if (difference < best) {
+      best = difference;
+      cut = i;
+      bestLeft = left;
+    }
+  }
+  const right = total - bestLeft;
+  if (Math.min(bestLeft, right) < BALANCE * Math.max(bestLeft, right)) return null;
+  return { left: run.slice(0, cut), right: run.slice(cut) };
+}
+
 /** A document's sections in the rows `layoutRows` gave them. `render` must key what it returns. */
 export function DocRows<T>(props: { rows: DocRow<T>[]; render: (item: T) => ReactNode }) {
   return props.rows.map((row, index) =>
@@ -226,24 +283,6 @@ export function DocRows<T>(props: { rows: DocRow<T>[]; render: (item: T) => Reac
       </div>
     ),
   );
-}
-
-/** Cuts a run where the two sides come out closest in weight, keeping the order. */
-function splitRun<T>(run: T[], weight: (item: T) => number): DocRow<T> {
-  const weights = run.map(weight);
-  const total = weights.reduce((sum, value) => sum + value, 0);
-  let cut = 1;
-  let best = Number.POSITIVE_INFINITY;
-  let left = 0;
-  for (let i = 1; i < run.length; i++) {
-    left += weights[i - 1] ?? 0;
-    const difference = Math.abs(total - 2 * left);
-    if (difference < best) {
-      best = difference;
-      cut = i;
-    }
-  }
-  return { left: run.slice(0, cut), right: run.slice(cut) };
 }
 
 /**

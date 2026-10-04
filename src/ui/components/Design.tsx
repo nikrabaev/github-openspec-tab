@@ -23,6 +23,12 @@ import { DiagramFigure } from './Diagram';
 /** Half a wide window is still a comfortable column for prose, however long it is. */
 const LONG = 20_000;
 
+/** The text before the first heading, laid out like a section. */
+interface Preamble {
+  kind: 'preamble';
+  body: string;
+}
+
 /** A decision's text and its alternatives, as one piece of Markdown to measure. */
 const decisionText = (decision: Decision) => `${decision.body}\n${decision.alternatives ?? ''}`;
 
@@ -61,8 +67,10 @@ function Decisions({ decisions }: { decisions: Decision[] }) {
   );
 }
 
-function Part({ part }: { part: DesignPart }) {
+function Part({ part }: { part: DesignPart | Preamble }) {
   switch (part.kind) {
+    case 'preamble':
+      return <Markdown source={part.body} />;
     case 'goals':
       return (
         <div className="block">
@@ -163,7 +171,7 @@ function Part({ part }: { part: DesignPart }) {
  * Whether a section may sit beside another on a wide window. Decisions and
  * risks always take the full width; so does anything holding a table or code.
  */
-function sharesRow(part: DesignPart): boolean {
+function sharesRow(part: DesignPart | Preamble): boolean {
   switch (part.kind) {
     case 'decisions':
     case 'risks':
@@ -174,7 +182,7 @@ function sharesRow(part: DesignPart): boolean {
 }
 
 /** The Markdown a section is made of, to measure it. */
-function partText(part: DesignPart): string {
+function partText(part: DesignPart | Preamble): string {
   switch (part.kind) {
     case 'decisions':
     case 'risks':
@@ -190,7 +198,15 @@ function partText(part: DesignPart): string {
 export function DesignSection({ change, doc }: { change: ChangeView; doc: DocView<DesignDoc> }) {
   const options = useMarkdownOptions(doc.path, { pathChips: true });
   const design = doc.doc;
-  const rows = layoutRows(design.sections, sharesRow, (part) => proseWeight(partText(part)));
+  const parts: Array<DesignPart | Preamble> = design.preamble
+    ? [{ kind: 'preamble', body: design.preamble }, ...design.sections]
+    : design.sections;
+  const rows = layoutRows(
+    parts,
+    sharesRow,
+    // Goals and non-goals are two cards, which stand taller than their text alone.
+    (part) => proseWeight(partText(part)) + (part.kind === 'goals' ? 500 : 0),
+  );
 
   return (
     <Section
@@ -206,11 +222,15 @@ export function DesignSection({ change, doc }: { change: ChangeView; doc: DocVie
     >
       <MarkdownProvider options={options}>
         <div className="doc">
-          {design.preamble && <Markdown source={design.preamble} />}
-          {design.sections.length === 0 && !design.preamble && <Markdown source={doc.raw} />}
+          {parts.length === 0 && <Markdown source={doc.raw} />}
           <DocRows
             rows={rows}
-            render={(part) => <Part key={`${part.line}:${part.title}`} part={part} />}
+            render={(part) => (
+              <Part
+                key={part.kind === 'preamble' ? 'preamble' : `${part.line}:${part.title}`}
+                part={part}
+              />
+            )}
           />
           {change.diagrams.length > 0 && (
             <div className="block">

@@ -1,58 +1,74 @@
 import { useMemo } from 'react';
-import type {
-  CapabilityRef,
-  ChangeView,
-  DocView,
-  ProposalDoc,
-  ProposalSection as ProposalPart,
+import {
+  type CapabilityRef,
+  type CapabilityView,
+  type ChangeView,
+  type DocView,
+  humanizeCapability,
+  type ProposalDoc,
+  type ProposalSection as ProposalPart,
 } from '@/openspec';
 import { usePull } from '../context';
-import { BookIcon, SpecIcon } from '../icons';
+import { BookIcon } from '../icons';
 import { InlineMarkdown, Markdown, MarkdownProvider } from '../markdown/Markdown';
 import { useMarkdownOptions } from '../markdownOptions';
-import { DocRows, isCompact, layoutRows, proseWeight, Section } from './common';
+import { CountChips, DocRows, isCompact, layoutRows, proseWeight, Section } from './common';
 
+/**
+ * The capabilities a proposal lists, one row each: the name as the spec section
+ * shows it, whether it is new, what the delta does to it, and the description
+ * underneath at the full width of the row.
+ */
 function CapabilityList(props: {
-  title: string;
-  refs: CapabilityRef[];
-  targets: ReadonlyMap<string, string>;
-  tone: string;
+  added: CapabilityRef[];
+  modified: CapabilityRef[];
+  views: ReadonlyMap<string, CapabilityView>;
 }) {
   const { goTo } = usePull();
-  if (props.refs.length === 0) return null;
+  const rows = [
+    ...props.added.map((ref) => ({ ref, isNew: true })),
+    ...props.modified.map((ref) => ({ ref, isNew: false })),
+  ];
   return (
-    <div className="cap-group">
-      <h5>{props.title}</h5>
-      <ul>
-        {props.refs.map((ref) => {
-          const target = props.targets.get(ref.name);
-          return (
-            <li key={ref.name}>
-              {target ? (
-                <button
-                  type="button"
-                  className={`chip chip-capability chip-${props.tone}`}
-                  onClick={() => goTo(target)}
-                >
-                  <SpecIcon size={12} />
-                  {ref.name}
+    <ul className="cap-list">
+      {rows.map(({ ref, isNew }) => {
+        const view = props.views.get(ref.name);
+        return (
+          <li key={`${isNew}:${ref.name}`} className="cap-row">
+            <div className="cap-head">
+              {view ? (
+                <button type="button" className="cap-name" onClick={() => goTo(view.id)}>
+                  {view.label}
                 </button>
               ) : (
                 <span
-                  className={`chip chip-${props.tone}`}
+                  className="cap-name"
                   title="This change has no delta spec for this capability"
                 >
-                  {ref.name}
+                  {humanizeCapability(ref.name)}
                 </span>
-              )}{' '}
-              <InlineMarkdown source={ref.description} />
-            </li>
-          );
-        })}
-      </ul>
-    </div>
+              )}
+              <code className="cap-id">{ref.name}</code>
+              <span className={isNew ? 'tag tag-added' : 'tag tag-changed'}>
+                {isNew ? 'New' : 'Modified'}
+              </span>
+              <span className="grow" />
+              {view && <CountChips counts={view.counts} />}
+            </div>
+            {ref.description && (
+              <p className="cap-text">
+                <InlineMarkdown source={ref.description} />
+              </p>
+            )}
+          </li>
+        );
+      })}
+    </ul>
   );
 }
+
+/** A part of the proposal: one of its sections, or the text before the first heading. */
+type Part = ProposalPart | { kind: 'preamble'; body: string };
 
 /** proposal.md: Why, What Changes, Capabilities and Impact as distinct blocks. */
 export function ProposalSection({
@@ -62,40 +78,47 @@ export function ProposalSection({
   change: ChangeView;
   doc: DocView<ProposalDoc>;
 }) {
-  const targets = useMemo(
-    () => new Map(change.capabilities.map((capability) => [capability.capability, capability.id])),
+  const views = useMemo(
+    () => new Map(change.capabilities.map((capability) => [capability.capability, capability])),
     [change.capabilities],
+  );
+  const targets = useMemo(
+    () => new Map([...views].map(([name, capability]) => [name, capability.id])),
+    [views],
   );
   const options = useMarkdownOptions(doc.path, { capabilities: targets, pathChips: true });
   const proposal = doc.doc;
-  // On a wide window the sections fill two columns, unless one holds a table or code and needs the room.
+  // On a wide window the parts fill two columns, unless one holds a table or code and needs
+  // the room. The text before the first heading is the first part.
+  const parts: Part[] = proposal.preamble
+    ? [{ kind: 'preamble', body: proposal.preamble }, ...proposal.sections]
+    : proposal.sections;
+  const listed = proposal.newCapabilities.length + proposal.modifiedCapabilities.length;
   const rows = layoutRows(
-    proposal.sections,
-    (section) => isCompact(section.body, 20_000),
-    (section) => proseWeight(section.body),
+    parts,
+    (part) => isCompact(part.body, 20_000),
+    // Each capability is a row with a heading line of its own, on top of its text.
+    (part) => proseWeight(part.body) + (part.kind === 'capabilities' ? 150 * listed : 0),
   );
 
-  const renderSection = (section: ProposalPart) => {
+  const renderSection = (section: Part) => {
+    if (section.kind === 'preamble') return <Markdown key="preamble" source={section.body} />;
     const key = `${section.line}:${section.title}`;
     if (section.kind === 'capabilities') {
       return (
         <div key={key} className="block block-capabilities">
           <h4>{section.title}</h4>
-          <CapabilityList
-            title="New"
-            refs={proposal.newCapabilities}
-            targets={targets}
-            tone="added"
-          />
-          <CapabilityList
-            title="Modified"
-            refs={proposal.modifiedCapabilities}
-            targets={targets}
-            tone="modified"
-          />
+          {listed > 0 && (
+            <CapabilityList
+              added={proposal.newCapabilities}
+              modified={proposal.modifiedCapabilities}
+              views={views}
+            />
+          )}
           {proposal.capabilitiesRest && <Markdown source={proposal.capabilitiesRest} />}
-          {proposal.newCapabilities.length + proposal.modifiedCapabilities.length === 0 &&
-            !proposal.capabilitiesRest && <p className="muted">No capabilities listed.</p>}
+          {listed === 0 && !proposal.capabilitiesRest && (
+            <p className="muted">No capabilities listed.</p>
+          )}
         </div>
       );
     }
@@ -116,7 +139,6 @@ export function ProposalSection({
           </div>
         ) : (
           <div className="doc">
-            {proposal.preamble && <Markdown source={proposal.preamble} />}
             <DocRows rows={rows} render={renderSection} />
           </div>
         )}

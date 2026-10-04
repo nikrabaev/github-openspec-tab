@@ -539,7 +539,6 @@ li:first-child > .outline-item.depth-0 {
 }
 
 .lead {
-  max-width: 68ch;
   font-size: 16px;
   line-height: 1.55;
   text-wrap: pretty;
@@ -1584,44 +1583,56 @@ button.chip:hover {
   color: inherit;
 }
 
-.chip-added {
-  color: var(--added-fg);
-  background: var(--added-bg);
-  border-color: var(--borderColor-success-muted, #4ac26b66);
-}
-
-.chip-modified {
-  color: var(--modified-fg);
-  background: var(--modified-bg);
-  border-color: var(--borderColor-attention-muted, #d4a72c66);
-}
-
-.cap-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.cap-group h5 {
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.cap-group ul {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+/* The capabilities a proposal lists: one row each, name first, description underneath. */
+.cap-list {
   list-style: none;
+  border: 1px solid var(--border);
+  border-radius: 10px;
 }
 
-/* The name leads its description, so every line starts at the same edge however long the name is. */
-.cap-group li {
-  max-width: 76ch;
-  line-height: 1.7;
+.cap-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 16px;
 }
 
-.cap-group .chip {
-  margin-inline-end: 4px;
+.cap-row + .cap-row {
+  border-top: 1px solid var(--border-muted);
+}
+
+.cap-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  align-items: center;
+}
+
+.cap-name {
+  padding: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--fg);
+  text-align: start;
+  background: none;
+  border: 0;
+}
+
+button.cap-name:hover {
+  color: var(--fg-accent);
+  text-decoration: underline;
+}
+
+.cap-head .cap-id {
+  padding: 0;
+  font-size: 12px;
+  background: none;
+}
+
+.cap-text {
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
 }
 
 .other-files {
@@ -1910,14 +1921,6 @@ button.chip:hover {
   min-width: 0;
   line-height: 1.6;
   overflow-wrap: anywhere;
-}
-
-.md > p,
-.md > ul,
-.md > ol,
-.md > blockquote,
-.md > .md-heading {
-  max-width: 76ch;
 }
 
 .md p {
@@ -2434,21 +2437,7 @@ dialog::backdrop {
     align-items: start;
   }
 
-  /* Tasks: groups next to each other, in wider columns when the tasks are long. */
-  .task-groups {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(620px, 1fr));
-    gap: 20px 48px;
-    align-items: start;
-  }
-
-  .task-groups.is-compact {
-    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-  }
-}
-
-@container content (min-width: 1300px) {
-  /* Long decisions sit two to a row, each in a column wide enough for prose. */
+  /* Long ones sit two to a row; one with a table or code keeps the full width. */
   .decisions:not(.is-compact) {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2460,5 +2449,17 @@ dialog::backdrop {
 
   .decisions:not(.is-compact) > .decision.is-half {
     grid-column: auto;
+  }
+
+  /* Tasks: groups next to each other, in wider columns when the tasks are long. */
+  .task-groups {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(620px, 1fr));
+    gap: 20px 48px;
+    align-items: start;
+  }
+
+  .task-groups.is-compact {
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
   }
 }

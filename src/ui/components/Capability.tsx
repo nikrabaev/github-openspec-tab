@@ -3,20 +3,8 @@ import type { CapabilityView } from '@/openspec';
 import { usePull } from '../context';
 import { ChevronIcon, SpecIcon } from '../icons';
 import { Markdown, TermScope } from '../markdown/Markdown';
-import { Callout, CopyLink, isCompact, ProblemList, plural } from './common';
+import { Callout, CopyLink, CountChips, isCompact, ProblemList, plural } from './common';
 import { RequirementBody, RequirementCard } from './Requirement';
-
-function CountChips({ view }: { view: CapabilityView }) {
-  const { added, modified, removed, renamed } = view.counts;
-  return (
-    <span className="counts">
-      {added > 0 && <span className="count count-added">+{added}</span>}
-      {modified > 0 && <span className="count count-modified">~{modified}</span>}
-      {removed > 0 && <span className="count count-removed">−{removed}</span>}
-      {renamed > 0 && <span className="count count-renamed">→{renamed}</span>}
-    </span>
-  );
-}
 
 /** One capability's spec: its changed requirements as cards, the rest folded away. */
 export function CapabilitySection({ view }: { view: CapabilityView }) {
@@ -32,7 +20,7 @@ export function CapabilitySection({ view }: { view: CapabilityView }) {
         <code className="cap-id">{view.capability}</code>
         {view.isNew && <span className="tag tag-added">New capability</span>}
         {view.historical && <span className="tag">Archived earlier</span>}
-        <CountChips view={view} />
+        <CountChips counts={view.counts} />
         <span className="grow" />
         <a className="quiet-link" href={blobUrl(data.pull, data.facts.headSha, sourcePath)}>
           {view.deltaPath ? 'Delta file' : 'Spec file'}

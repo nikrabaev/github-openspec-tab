@@ -68,6 +68,11 @@ try {
   check('our tab is marked current', (await tab.getAttribute('aria-current')) === 'page');
   const hidden = await page.locator('[data-openspec-hidden]').count();
   check(`native content is hidden (${hidden} elements)`, hidden > 0);
+  // The stylesheet is bundled into the content script; this fails if it did not reach the tab.
+  const display = await page
+    .locator('openspec-tab .layout')
+    .evaluate((element) => getComputedStyle(element).display);
+  check(`the tab is styled (layout is ${display})`, display === 'grid');
   await page.screenshot({ path: join(out, '2-openspec-tab.png') });
 
   const firstCard = page.locator('openspec-tab .req').first();

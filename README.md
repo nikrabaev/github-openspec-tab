@@ -111,6 +111,8 @@ Run `pnpm build:firefox`, open `about:debugging#/runtime/this-firefox`, choose *
 
 Then open any pull request on github.com and choose the **OpenSpec** tab.
 
+**Updating:** pull, run `pnpm build`, press the reload button on the extension's card in `chrome://extensions`, then refresh the pull request page. Refreshing the page alone keeps running the version the browser loaded before.
+
 ## Private repositories
 
 Public repositories work with no setup. For a private repository the tab needs a read-only token, because it asks GitHub's API which OpenSpec files the pull request changes.

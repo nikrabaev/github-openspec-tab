@@ -1,4 +1,3 @@
-import '@/ui/styles.css';
 import { createRoot, type Root } from 'react-dom/client';
 import type { ContentScriptContext } from 'wxt/utils/content-script-context';
 import {
@@ -202,6 +201,10 @@ class Controller {
 
   private async mount(boundary: HTMLElement): Promise<void> {
     this.ui?.remove();
+    // The stylesheet is bundled into this script, not fetched as a file of its own. A browser
+    // keeps running the script it loaded until the extension is reloaded, but would fetch a
+    // newer stylesheet at once, and the two must never be from different builds.
+    const { default: tabCss } = await import('@/ui/styles.css?inline');
     const ui = await createShadowRootUi(this.ctx, {
       name: 'openspec-tab',
       position: 'inline',
@@ -209,6 +212,7 @@ class Controller {
       append: 'last',
       // The stylesheet resets inherited styles itself and relies on GitHub's CSS variables.
       inheritStyles: true,
+      css: tabCss,
       // Typing in the tab must not trigger GitHub's keyboard shortcuts.
       isolateEvents: ['keydown', 'keyup', 'keypress'],
       onMount: (container) => {
@@ -352,7 +356,8 @@ class Controller {
 
 export default defineContentScript({
   matches: ['https://github.com/*'],
-  cssInjectionMode: 'ui',
+  // The stylesheet travels inside the script: see `mount`.
+  cssInjectionMode: 'manual',
   main(ctx) {
     new Controller(ctx).start();
   },

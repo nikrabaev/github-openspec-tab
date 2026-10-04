@@ -1,5 +1,7 @@
 # Design: Refunds from receipts
 
+See `proposal.md` for why. The requirements are in the spec deltas next to this file: `ride-billing`, `refund-review`, `payment-provider-refund-webhooks`, `rider-notifications` and `receipts`. This file says how the billing service does it and what was ruled out.
+
 ## Context
 
 A charge is created when a ride ends, and the receipt is built from the charge. Refunds exist today only as a manual action in the admin tool, which calls the payment provider directly and writes a note on the ride. Nothing in our own database records that a refund was asked for, who decided it or why, so the receipt cannot show it and support cannot see a rider's history without opening the provider's dashboard.
