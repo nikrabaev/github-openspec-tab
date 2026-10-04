@@ -40,6 +40,31 @@ try {
       problems.push(message.text());
   });
 
+  // In the page: how often the tab is added, and what GitHub had on the page when it first was
+  // (everything that follows the tab bar, the way the tab hides it).
+  // (Kept free of named inner functions: tsx wraps those in a helper the page does not have.)
+  await page.addInitScript(() => {
+    const seen = { added: 0, content: [] as Element[] };
+    (window as unknown as { openspecSmoke: typeof seen }).openspecSmoke = seen;
+    new MutationObserver((records) => {
+      for (const node of records.flatMap((record) => [...record.addedNodes])) {
+        if (!(node instanceof Element)) continue;
+        const added = node.matches('a[data-openspec-tab]')
+          ? node
+          : node.querySelector('a[data-openspec-tab]');
+        if (!added || ++seen.added > 1) continue;
+        for (
+          let element = added.closest('nav');
+          element && !element.matches('turbo-frame, main');
+          element = element.parentElement
+        ) {
+          for (let next = element.nextElementSibling; next; next = next.nextElementSibling)
+            seen.content.push(next);
+        }
+      }
+    }).observe(document, { childList: true, subtree: true });
+  });
+
   await page.goto(url, { waitUntil: 'domcontentloaded' });
   const tab = page.locator('a[data-openspec-tab]');
   await tab.waitFor({ timeout: 20_000 });
@@ -52,6 +77,31 @@ try {
     /Files changed/.test(previous),
   );
   await page.screenshot({ path: join(out, '1-conversation.png') });
+
+  // A tab added before GitHub's React has taken over the server's HTML makes React throw the
+  // page content away and render it again. Give React time to get there, then look.
+  await page.waitForFunction(
+    () => {
+      const list = document.querySelector('a[data-openspec-tab]')?.parentElement;
+      return (
+        !list?.closest('react-app, react-partial') ||
+        Object.keys(list).some((key) => key.startsWith('__reactFiber$'))
+      );
+    },
+    null,
+    { timeout: 20_000 },
+  );
+  await page.waitForTimeout(1500);
+  const seen = await page.evaluate(() => {
+    const { added, content } = (
+      window as unknown as { openspecSmoke: { added: number; content: Element[] } }
+    ).openspecSmoke;
+    return { added, total: content.length, kept: content.filter((e) => e.isConnected).length };
+  });
+  check(
+    `page content is not re-added after the tab is inserted (${seen.kept} of ${seen.total} elements kept, tab added ${seen.added}×)`,
+    seen.total > 0 && seen.kept === seen.total && seen.added === 1,
+  );
 
   const counter = tab.locator('[data-openspec-count]');
   await counter.filter({ hasText: /\d/ }).waitFor({ timeout: 30_000 });
