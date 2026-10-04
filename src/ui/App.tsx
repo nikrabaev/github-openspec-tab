@@ -127,10 +127,14 @@ function Ready({
       root.current?.querySelector<HTMLElement>(`[data-item="${CSS.escape(id)}"]`) ?? null,
     [],
   );
+  // The item last jumped to stays "current" while it is on screen, even when it
+  // cannot reach the top of the window (the end of the page), so j and k never stall.
+  const pinned = useRef<{ id: string; at: number } | null>(null);
   const scrollTo = useCallback(
     (id: string, smooth = true) => {
       const element = find(id);
       if (!element) return false;
+      pinned.current = { id, at: Date.now() };
       const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       element.scrollIntoView({ behavior: smooth && !calm ? 'smooth' : 'auto', block: 'start' });
       element.setAttribute('tabindex', '-1');
@@ -162,9 +166,16 @@ function Ready({
       frame = 0;
       const items = root.current?.querySelectorAll<HTMLElement>('[data-nav]');
       if (!items?.length) return;
+      if (pinned.current) {
+        const rect = find(pinned.current.id)?.getBoundingClientRect();
+        const onScreen = rect && rect.bottom > 0 && rect.top < window.innerHeight;
+        // Still on its way there (smooth scrolling), or arrived and visible.
+        if (onScreen || Date.now() - pinned.current.at < 1000) return;
+        pinned.current = null;
+      }
       let active = items[0];
       for (const item of items) {
-        if (item.getBoundingClientRect().top <= 96) active = item;
+        if (item.getBoundingClientRect().top <= 48) active = item;
         else break;
       }
       setCurrent(active?.dataset.item ?? null);
@@ -172,15 +183,24 @@ function Ready({
     const onScroll = () => {
       if (!frame) frame = requestAnimationFrame(update);
     };
+    // Scrolling by hand hands the highlight back to the scroll position.
+    const release = (event: Event) => {
+      if (event instanceof KeyboardEvent && !/^(Arrow|Page|Home|End| )/.test(event.key)) return;
+      pinned.current = null;
+    };
     update();
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', onScroll, { passive: true });
+    for (const type of ['wheel', 'touchmove', 'keydown'])
+      window.addEventListener(type, release, { passive: true });
     return () => {
       cancelAnimationFrame(frame);
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onScroll);
+      for (const type of ['wheel', 'touchmove', 'keydown'])
+        window.removeEventListener(type, release);
     };
-  }, []);
+  }, [find]);
 
   // Keyboard: handled before GitHub's own shortcuts see the key.
   useEffect(() => {
@@ -197,7 +217,9 @@ function Ready({
         }
         return;
       }
-      if (root.current?.querySelector('dialog[open]')) return;
+      // An open dialog (help, a zoomed diagram) has the keyboard to itself.
+      const scope = root.current?.getRootNode() as Document | ShadowRoot | undefined;
+      if (scope?.querySelector('dialog[open]')) return;
       const items = [...(root.current?.querySelectorAll<HTMLElement>('[data-nav]') ?? [])];
       const index = items.findIndex((item) => item.dataset.item === current);
       const move = (step: number) => {

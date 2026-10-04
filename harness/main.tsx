@@ -235,7 +235,10 @@ function ShadowMount({ children }: { children: React.ReactNode }) {
 
 const shell = document.getElementById('shell');
 if (shell) {
-  createRoot(shell).render(
+  // Reuse the root when Vite re-runs this module after an edit.
+  const holder = window as { harnessRoot?: ReturnType<typeof createRoot> };
+  holder.harnessRoot ??= createRoot(shell);
+  holder.harnessRoot.render(
     <StrictMode>
       <Harness />
     </StrictMode>,
