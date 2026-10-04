@@ -4,7 +4,7 @@ import { usePull } from '../context';
 import { BookIcon, SpecIcon } from '../icons';
 import { InlineMarkdown, Markdown, MarkdownProvider } from '../markdown/Markdown';
 import { useMarkdownOptions } from '../markdownOptions';
-import { Section } from './common';
+import { pairHalves, Section } from './common';
 
 function CapabilityList(props: {
   title: string;
@@ -64,6 +64,7 @@ export function ProposalSection({
   );
   const options = useMarkdownOptions(doc.path, { capabilities: targets, pathChips: true });
   const proposal = doc.doc;
+  const halves = pairHalves(proposal.sections.map(() => true));
 
   return (
     <Section id={doc.id} title="Proposal" icon={<BookIcon />} hash={doc.hash}>
@@ -75,11 +76,12 @@ export function ProposalSection({
         ) : (
           <div className="doc">
             {proposal.preamble && <Markdown source={proposal.preamble} />}
-            {proposal.sections.map((section) => {
+            {proposal.sections.map((section, index) => {
               const key = `${section.line}:${section.title}`;
+              const half = halves[index] ? ' is-half' : '';
               if (section.kind === 'capabilities') {
                 return (
-                  <div key={key} className="block block-capabilities">
+                  <div key={key} className={`block block-capabilities${half}`}>
                     <h4>{section.title}</h4>
                     <CapabilityList
                       title="New"
@@ -102,7 +104,7 @@ export function ProposalSection({
                 );
               }
               return (
-                <div key={key} className={`block block-${section.kind}`}>
+                <div key={key} className={`block block-${section.kind}${half}`}>
                   <h4>{section.title}</h4>
                   {section.body.trim() ? (
                     <Markdown source={section.body} />

@@ -206,11 +206,8 @@ kbd {
   flex-direction: column;
   gap: 20px;
   min-width: 0;
-  max-width: 880px;
-}
-
-.content.view-split {
-  max-width: none;
+  /* As wide as GitHub's own page. The wide-window rules at the end key on this container. */
+  container: content / inline-size;
 }
 
 .change {
@@ -2321,4 +2318,111 @@ dialog::backdrop {
 
 .lightbox-stage .diagram-img {
   max-width: none;
+}
+
+/* ---------- Wide windows ----------
+ * The tab is as wide as the pull request page around it. Where there is room,
+ * each part puts two things side by side rather than stretching one column of
+ * text across the window; lines of prose keep their comfortable length.
+ */
+
+.overview-body,
+.task-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.overview-main,
+.overview-side {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.task-groups {
+  gap: 18px;
+}
+
+@container content (min-width: 1100px) {
+  /* Overview: what the change is on the left, its numbers on the right. */
+  .overview-body {
+    display: grid;
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    column-gap: 48px;
+    align-items: start;
+  }
+
+  /* A requirement: its statement beside its scenarios. */
+  .req-body {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: 12px 32px;
+    align-items: start;
+  }
+
+  .req-body > * {
+    grid-column: 1 / -1;
+  }
+
+  .req-body > .statement {
+    grid-row: 1 / span 2;
+    grid-column: 1;
+  }
+
+  .req-body > .statement:only-child {
+    grid-column: 1 / -1;
+  }
+
+  .req-body > .scenario-summary {
+    grid-row: 1;
+    grid-column: 2;
+  }
+
+  .req-body > .scenarios {
+    grid-column: 2;
+  }
+
+  /* A removal: reason beside migration, then the old statement beside its scenarios. */
+  .req-body > .callout {
+    grid-column: auto;
+  }
+
+  .removed-text {
+    display: grid;
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: 12px 32px;
+    align-items: start;
+  }
+
+  /* Proposal and design: sections in two columns, the large ones across both. */
+  .doc {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px 48px;
+    align-items: start;
+  }
+
+  .doc > * {
+    grid-column: 1 / -1;
+  }
+
+  .doc > .is-half {
+    grid-column: auto;
+  }
+
+  .decisions {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(440px, 1fr));
+    align-items: start;
+  }
+
+  /* Tasks: groups next to each other. */
+  .task-groups {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    gap: 20px 48px;
+    align-items: start;
+  }
 }

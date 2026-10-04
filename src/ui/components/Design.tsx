@@ -2,14 +2,15 @@ import type { ChangeView, DesignDoc, DesignSection as DesignPart, DocView } from
 import { ArrowIcon, CheckIcon, ChevronIcon, CloseIcon, PencilIcon, QuestionIcon } from '../icons';
 import { Markdown, MarkdownProvider } from '../markdown/Markdown';
 import { useMarkdownOptions } from '../markdownOptions';
-import { Callout, plural, Section } from './common';
+import { Callout, pairHalves, plural, Section } from './common';
 import { DiagramFigure } from './Diagram';
 
-function Part({ part }: { part: DesignPart }) {
+function Part({ part, half }: { part: DesignPart; half: boolean }) {
+  const block = half ? 'block is-half' : 'block';
   switch (part.kind) {
     case 'goals':
       return (
-        <div className="block">
+        <div className={block}>
           <h4>{part.title}</h4>
           {part.intro && <Markdown source={part.intro} />}
           <div className="goals">
@@ -38,7 +39,7 @@ function Part({ part }: { part: DesignPart }) {
       );
     case 'decisions':
       return (
-        <div className="block">
+        <div className={block}>
           <h4>{part.title}</h4>
           {part.intro && <Markdown source={part.intro} />}
           <ol className="decisions">
@@ -65,7 +66,7 @@ function Part({ part }: { part: DesignPart }) {
       );
     case 'risks':
       return (
-        <div className="block">
+        <div className={block}>
           <h4>{part.title}</h4>
           {part.intro && <Markdown source={part.intro} />}
           <ul className="risks">
@@ -97,7 +98,7 @@ function Part({ part }: { part: DesignPart }) {
     case 'open-questions':
       if (part.count === 0) {
         return (
-          <div className="block">
+          <div className={block}>
             <h4>{part.title}</h4>
             <p className="muted">None.</p>
           </div>
@@ -105,6 +106,7 @@ function Part({ part }: { part: DesignPart }) {
       }
       return (
         <Callout
+          className={half ? 'is-half' : undefined}
           tone="attention"
           icon={<QuestionIcon />}
           title={`Needs your answer: ${plural(part.count, 'open question')}`}
@@ -114,7 +116,7 @@ function Part({ part }: { part: DesignPart }) {
       );
     default:
       return (
-        <div className="block">
+        <div className={block}>
           <h4>{part.title}</h4>
           {part.body.trim() ? <Markdown source={part.body} /> : <p className="muted">Empty.</p>}
         </div>
@@ -126,6 +128,10 @@ function Part({ part }: { part: DesignPart }) {
 export function DesignSection({ change, doc }: { change: ChangeView; doc: DocView<DesignDoc> }) {
   const options = useMarkdownOptions(doc.path, { pathChips: true });
   const design = doc.doc;
+  // Decisions and risks need the full width; the rest can sit two to a row on a wide window.
+  const halves = pairHalves(
+    design.sections.map((part) => part.kind !== 'decisions' && part.kind !== 'risks'),
+  );
   return (
     <Section
       id={doc.id}
@@ -142,8 +148,8 @@ export function DesignSection({ change, doc }: { change: ChangeView; doc: DocVie
         <div className="doc">
           {design.preamble && <Markdown source={design.preamble} />}
           {design.sections.length === 0 && !design.preamble && <Markdown source={doc.raw} />}
-          {design.sections.map((part) => (
-            <Part key={`${part.line}:${part.title}`} part={part} />
+          {design.sections.map((part, index) => (
+            <Part key={`${part.line}:${part.title}`} part={part} half={halves[index] ?? false} />
           ))}
           {change.diagrams.length > 0 && (
             <div className="block">

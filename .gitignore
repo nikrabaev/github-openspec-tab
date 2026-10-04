@@ -10,3 +10,4 @@ web-ext.config.ts
 .claude
 scripts/_*
 docs/screenshots
+.idea

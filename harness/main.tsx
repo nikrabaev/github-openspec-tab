@@ -67,6 +67,9 @@ function loadFixture(name: string): LoadedPull {
 const params = new URLSearchParams(location.search);
 /** `?clean=1` hides the harness controls, for pictures. */
 const clean = params.has('clean');
+/** `?wide=1` lets the page use the whole window, as GitHub's full-width pull request pages do. */
+const wide = params.has('wide');
+if (wide) document.documentElement.dataset.wide = '';
 const THEMES: Record<string, [string, string, string]> = {
   light: ['light', 'light', 'dark'],
   dark: ['dark', 'light', 'dark'],
@@ -251,7 +254,13 @@ function ShadowMount({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     root?.render(children);
   }, [root, children]);
-  return <div id="openspec-tab-host" ref={setHost} />;
+  return (
+    <div
+      id="openspec-tab-host"
+      ref={setHost}
+      style={wide ? ({ '--openspec-max-width': 'none' } as React.CSSProperties) : undefined}
+    />
+  );
 }
 
 const shell = document.getElementById('shell');

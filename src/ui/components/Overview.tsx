@@ -50,73 +50,82 @@ export function OverviewCard({ change }: { change: ChangeView }) {
         <CopyLink id={`${change.id}/overview`} label="Copy link to this change" />
       </div>
 
-      <h2>
-        {change.label.ticket && <span className="ticket">{change.label.ticket}</span>}
-        {change.label.title || change.label.label}
-      </h2>
+      <div className="overview-body">
+        <div className="overview-main">
+          <h2>
+            {change.label.ticket && <span className="ticket">{change.label.ticket}</span>}
+            {change.label.title || change.label.label}
+          </h2>
 
-      {lead && (
-        <MarkdownProvider options={options}>
-          <p className="lead">
-            <InlineMarkdown source={lead} />
-          </p>
-        </MarkdownProvider>
-      )}
-
-      <dl className="stats">
-        <Stat value={change.counts.added} label="added" tone="added" />
-        <Stat value={change.counts.modified} label="modified" tone="modified" />
-        <Stat value={change.counts.removed} label="removed" tone="removed" />
-        <Stat value={change.counts.renamed} label="renamed" tone="renamed" />
-        <Stat
-          value={change.capabilities.length}
-          label={change.capabilities.length === 1 ? 'capability' : 'capabilities'}
-        />
-      </dl>
-
-      {tasks && tasks.total > 0 && (
-        <button type="button" className="overview-tasks" onClick={() => goTo(`${change.id}/tasks`)}>
-          <ProgressBar done={tasks.done} total={tasks.total} label="Task progress" />
-          <span>
-            <strong>
-              {tasks.done} of {tasks.total}
-            </strong>{' '}
-            tasks done
-            {doneHere > 0 && <span className="muted"> · {doneHere} in this PR</span>}
-          </span>
-        </button>
-      )}
-
-      {(breaking > 0 || questions > 0 || change.problemCount > 0) && (
-        <div className="flags">
-          {breaking > 0 && (
-            <button
-              type="button"
-              className="flag flag-danger"
-              onClick={() => goTo(`${change.id}/proposal`)}
-            >
-              <AlertIcon size={14} />
-              {plural(breaking, 'breaking change')}
-            </button>
-          )}
-          {questions > 0 && (
-            <button
-              type="button"
-              className="flag flag-attention"
-              onClick={() => goTo(`${change.id}/design`)}
-            >
-              <QuestionIcon size={14} />
-              {plural(questions, 'open question')}
-            </button>
-          )}
-          {change.problemCount > 0 && (
-            <span className="flag flag-attention">
-              <AlertIcon size={14} />
-              {plural(change.problemCount, 'format problem')}
-            </span>
+          {lead && (
+            <MarkdownProvider options={options}>
+              <p className="lead">
+                <InlineMarkdown source={lead} />
+              </p>
+            </MarkdownProvider>
           )}
         </div>
-      )}
+        <div className="overview-side">
+          <dl className="stats">
+            <Stat value={change.counts.added} label="added" tone="added" />
+            <Stat value={change.counts.modified} label="modified" tone="modified" />
+            <Stat value={change.counts.removed} label="removed" tone="removed" />
+            <Stat value={change.counts.renamed} label="renamed" tone="renamed" />
+            <Stat
+              value={change.capabilities.length}
+              label={change.capabilities.length === 1 ? 'capability' : 'capabilities'}
+            />
+          </dl>
+
+          {tasks && tasks.total > 0 && (
+            <button
+              type="button"
+              className="overview-tasks"
+              onClick={() => goTo(`${change.id}/tasks`)}
+            >
+              <ProgressBar done={tasks.done} total={tasks.total} label="Task progress" />
+              <span>
+                <strong>
+                  {tasks.done} of {tasks.total}
+                </strong>{' '}
+                tasks done
+                {doneHere > 0 && <span className="muted"> · {doneHere} in this PR</span>}
+              </span>
+            </button>
+          )}
+
+          {(breaking > 0 || questions > 0 || change.problemCount > 0) && (
+            <div className="flags">
+              {breaking > 0 && (
+                <button
+                  type="button"
+                  className="flag flag-danger"
+                  onClick={() => goTo(`${change.id}/proposal`)}
+                >
+                  <AlertIcon size={14} />
+                  {plural(breaking, 'breaking change')}
+                </button>
+              )}
+              {questions > 0 && (
+                <button
+                  type="button"
+                  className="flag flag-attention"
+                  onClick={() => goTo(`${change.id}/design`)}
+                >
+                  <QuestionIcon size={14} />
+                  {plural(questions, 'open question')}
+                </button>
+              )}
+              {change.problemCount > 0 && (
+                <span className="flag flag-attention">
+                  <AlertIcon size={14} />
+                  {plural(change.problemCount, 'format problem')}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
     </header>
   );
 }

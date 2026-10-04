@@ -165,9 +165,10 @@ export function Callout(props: {
   title: ReactNode;
   children: ReactNode;
   icon?: ReactNode;
+  className?: string;
 }) {
   return (
-    <div className={`callout callout-${props.tone}`}>
+    <div className={`callout callout-${props.tone}${props.className ? ` ${props.className}` : ''}`}>
       <div className="callout-title">
         {props.icon}
         {props.title}
@@ -178,3 +179,20 @@ export function Callout(props: {
 }
 
 export { plural } from '@/openspec/text';
+
+/**
+ * On a wide window, sections sit two to a row. Given which sections may share a
+ * row, say which ones do: a section takes half the width only when the one after
+ * it (or before it) can sit beside it, so nothing is left alone in half a row.
+ */
+export function pairHalves(canShare: readonly boolean[]): boolean[] {
+  const half = canShare.map(() => false);
+  for (let i = 0; i < canShare.length - 1; i++) {
+    if (canShare[i] && canShare[i + 1]) {
+      half[i] = true;
+      half[i + 1] = true;
+      i++;
+    }
+  }
+  return half;
+}

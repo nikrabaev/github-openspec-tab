@@ -130,3 +130,7 @@ body {
 .shell-controls[hidden] {
   display: none;
 }
+
+html[data-wide] .shell-pr {
+  max-width: none;
+}

@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import type { LoadedPull } from '../src/github/load';
 import { parseGlossary } from '../src/openspec';
 import { App } from '../src/ui/App';
+import { pairHalves } from '../src/ui/components/common';
 import type { Services } from '../src/ui/context';
 import { Markdown, MarkdownProvider } from '../src/ui/markdown/Markdown';
 import { looksLikePath, resolveRepoPath } from '../src/ui/markdownOptions';
@@ -175,6 +176,20 @@ describe('helpers', () => {
     const filtered = filterOutline(outline, 'pin').map((item) => item.label);
     expect(filtered).toEqual(['BKS-142 · Group rides', 'Ride unlock', 'Unlock with a station PIN']);
     expect(filterOutline(outline, 'zzz')).toEqual([]);
+  });
+
+  it('pairs sections two to a row without leaving one alone in half a row', () => {
+    expect(pairHalves([true, true, true, true])).toEqual([true, true, true, true]);
+    expect(pairHalves([true, true, true])).toEqual([true, true, false]);
+    expect(pairHalves([true, false, true, true, false, true])).toEqual([
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+    ]);
+    expect(pairHalves([])).toEqual([]);
   });
 
   it('tells dark backgrounds from light ones', () => {
