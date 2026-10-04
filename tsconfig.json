@@ -1,0 +1,14 @@
+{
+  "extends": "./.wxt/tsconfig.json",
+  "compilerOptions": {
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "allowImportingTsExtensions": true,
+    "jsx": "react-jsx",
+    "types": ["node"]
+  },
+  "include": ["src", "harness", "tests", "scripts", "*.ts", ".wxt/wxt.d.ts"],
+  "exclude": ["node_modules", ".output", "tests/fixtures"]
+}
