@@ -8,7 +8,10 @@ import { join } from 'node:path';
 import { chromium, type Page } from 'playwright';
 import { createServer } from 'vite';
 
+/** Every view in light and dark. Generated on demand, not committed. */
 const OUT = join(import.meta.dirname, '..', 'docs', 'screenshots');
+/** The few pictures the README shows, at double density. Committed. */
+const README = join(import.meta.dirname, '..', 'docs', 'readme');
 const GROUP_RIDES = 'c/bks-142-group-rides';
 
 interface Shot {
@@ -20,14 +23,14 @@ interface Shot {
   target?: string;
   /** Extra steps before the picture is taken. */
   prepare?(page: Page): Promise<void>;
-  /** Also taken at double density, for the README. */
-  hero?: boolean;
+  /** Also taken at double density for the README, in these themes. */
+  hero?: Array<'light' | 'dark'>;
 }
 
 const SHOTS: Shot[] = [
-  { name: 'overview', target: `${GROUP_RIDES}/overview`, hero: true },
+  { name: 'overview', target: `${GROUP_RIDES}/overview`, hero: ['light'] },
   { name: 'proposal', target: `${GROUP_RIDES}/proposal` },
-  { name: 'design', target: `${GROUP_RIDES}/design`, hero: true },
+  { name: 'design', target: `${GROUP_RIDES}/design`, hero: ['light'] },
   {
     name: 'design-decisions',
     target: `${GROUP_RIDES}/design`,
@@ -48,13 +51,13 @@ const SHOTS: Shot[] = [
     name: 'modified-inline',
     view: 'inline',
     target: `${GROUP_RIDES}/spec/ride-unlock/unlock-by-qr-code`,
-    hero: true,
+    hero: ['light', 'dark'],
   },
   {
     name: 'modified-split',
     view: 'split',
     target: `${GROUP_RIDES}/spec/ride-unlock/unlock-by-qr-code`,
-    hero: true,
+    hero: ['light'],
   },
   {
     name: 'modified-new',
@@ -78,7 +81,7 @@ const SHOTS: Shot[] = [
       await page.mouse.wheel(0, 260);
     },
   },
-  { name: 'tasks', target: `${GROUP_RIDES}/tasks`, hero: true },
+  { name: 'tasks', target: `${GROUP_RIDES}/tasks`, hero: ['light'] },
   { name: 'archived-change', target: 'c/2026-09-28-bks-131-dock-reservations/overview' },
   {
     name: 'archived-spec',
@@ -159,28 +162,29 @@ await server.listen();
 const address = server.httpServer?.address();
 const base = `http://localhost:${typeof address === 'object' && address ? address.port : 5198}`;
 
-await rm(OUT, { recursive: true, force: true });
-await mkdir(OUT, { recursive: true });
+for (const dir of [OUT, README]) {
+  await rm(dir, { recursive: true, force: true });
+  await mkdir(dir, { recursive: true });
+}
 const browser = await chromium.launch();
 try {
   for (const scale of [1, 2]) {
     for (const theme of THEMES) {
       // A fresh context per pass: no review state or preferences carry over.
       const context = await browser.newContext({
-        viewport: { width: 1360, height: 860 },
+        viewport: scale === 2 ? { width: 1280, height: 800 } : { width: 1360, height: 860 },
         deviceScaleFactor: scale,
         colorScheme: theme === 'dark' ? 'dark' : 'light',
         reducedMotion: 'reduce',
       });
       for (const shot of SHOTS) {
-        if (scale === 2 && !shot.hero) continue;
+        if (scale === 2 && !shot.hero?.includes(theme)) continue;
         const page = await context.newPage();
-        const suffix = scale === 2 ? '@2x' : '';
-        const file = join(OUT, `${shot.name}-${theme}${suffix}.png`);
+        const file = join(scale === 2 ? README : OUT, `${shot.name}-${theme}.png`);
         await capture(page, base, shot, theme, file);
         await page.evaluate(() => localStorage.clear());
         await page.close();
-        console.log(`✓ ${shot.name}-${theme}${suffix}`);
+        console.log(`✓ ${scale === 2 ? 'readme/' : ''}${shot.name}-${theme}`);
       }
       await context.close();
     }
