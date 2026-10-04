@@ -414,7 +414,9 @@ export function App({ state, repo, target, services }: AppProps) {
   const dark = useIsDark(ref);
   return (
     <div className="openspec-tab" ref={ref} data-dark={dark ? '' : undefined}>
-      {state.status === 'loading' && <LoadingState />}
+      {state.status === 'loading' && (
+        <LoadingState outlineWidth={services.preferences().outlineWidth} />
+      )}
       {state.status === 'error' && (
         <ErrorState
           error={state.error}

@@ -125,10 +125,13 @@ try {
   check(`the tab is styled (layout is ${display})`, display === 'grid');
   await page.screenshot({ path: join(out, '2-openspec-tab.png') });
 
+  // The loading skeleton has a layout, an outline and cards too: this is the reading view only.
+  const view = 'openspec-tab .layout:not([aria-busy])';
+
   // The outline's edge is dragged to resize it, and the background script keeps the width.
   const outlineWidth = () =>
     page
-      .locator('openspec-tab .outline')
+      .locator(`${view} .outline`)
       .evaluate((element) => Math.round(element.getBoundingClientRect().width));
   const edge = await page.locator('openspec-tab .outline-resizer').boundingBox();
   const before = await outlineWidth();
@@ -264,7 +267,7 @@ try {
   await page.goto(`${url.replace(/[#?].*$/, '')}/files#openspec`, {
     waitUntil: 'domcontentloaded',
   });
-  const lastCard = page.locator('openspec-tab .req').last();
+  const lastCard = page.locator(`${view} .req`).last();
   await lastCard.waitFor({ timeout: 30_000 });
   await lastCard.scrollIntoViewIfNeeded();
   await page.waitForTimeout(500);

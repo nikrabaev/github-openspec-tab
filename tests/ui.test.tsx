@@ -131,6 +131,16 @@ describe('App', () => {
     expect(html).toMatch(/<hr class="outline-resizer"[^>]*aria-valuenow="340"/);
     expect(html).toContain('class="content view-split"');
     expect(render('showcase')).toContain('style="--outline-width:272px"');
+    // The skeleton shown while loading is laid out the same way.
+    const loading = toHtml(
+      <App
+        state={{ status: 'loading' }}
+        repo="pedalway/pedalway"
+        target={null}
+        services={{ ...services, preferences: () => ({ diffView: 'split', outlineWidth: 340 }) }}
+      />,
+    );
+    expect(loading).toMatch(/class="layout" aria-busy="true"[^>]*style="--outline-width:340px"/);
   });
 
   it('puts a proposal in two columns of about the same length', () => {

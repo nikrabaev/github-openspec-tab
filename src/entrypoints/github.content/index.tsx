@@ -50,7 +50,10 @@ class Controller {
   private pull: PullRef | null = null;
   private phase: Phase = { status: 'unknown' };
   private loadedAt = 0;
-  /** What the reader chose last time. Read along with each pull request, so the tab's first render follows it. */
+  /**
+   * What the reader chose last time. Read when the script starts and again with each pull
+   * request, so the skeleton and the tab's first render are already laid out that way.
+   */
   private preferences: Preferences = DEFAULT_PREFERENCES;
   private generation = 0;
   private target: string | null = null;
@@ -84,6 +87,7 @@ class Controller {
         void this.load(this.pull, true);
     });
     this.ctx.onInvalidated(() => this.teardown(true));
+    void this.readPreferences();
     this.sync();
   }
 
@@ -332,13 +336,11 @@ class Controller {
         }
       }
       if (!quiet) this.setPhase({ status: 'loading' });
-      const [data, preferences] = await Promise.all([
+      const [data] = await Promise.all([
         loadPull(pull, extensionBackend, ROOT),
-        send({ type: 'prefs-get' }).catch(() => null),
+        this.readPreferences(),
       ]);
       if (!current()) return;
-      // A background script from an older build does not know the newer preferences.
-      this.preferences = { ...DEFAULT_PREFERENCES, ...preferences };
       this.loadedAt = Date.now();
       this.setPhase({ status: 'ready', data });
       if (data.plan.loads.length > 0) void send({ type: 'repo-flag-set', repo, hasOpenSpec: true });
@@ -349,6 +351,14 @@ class Controller {
         error: error instanceof Error ? error : new Error(String(error)),
       });
     }
+  }
+
+  private async readPreferences(): Promise<void> {
+    const stored = await send({ type: 'prefs-get' }).catch(() => null);
+    if (!stored) return;
+    // A background script from an older build does not know the newer preferences.
+    this.preferences = { ...DEFAULT_PREFERENCES, ...stored };
+    this.render();
   }
 
   private services: Services = {

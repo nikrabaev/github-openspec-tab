@@ -1,11 +1,16 @@
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import type { LoadError } from '@/github/load';
 import { AlertIcon, ClockIcon, InboxIcon, KeyIcon, StopIcon } from '../icons';
 
 /** Shown while the pull request is being read: the shape of what is coming. */
-export function LoadingState() {
+export function LoadingState({ outlineWidth }: { outlineWidth: number }) {
   return (
-    <div className="layout" aria-busy="true" aria-live="polite">
+    <div
+      className="layout"
+      aria-busy="true"
+      aria-live="polite"
+      style={{ '--outline-width': `${outlineWidth}px` } as CSSProperties}
+    >
       <span className="sr-only">Loading OpenSpec changes</span>
       <div className="outline" aria-hidden="true">
         <div className="skeleton sk-line" style={{ width: '50%' }} />

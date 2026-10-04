@@ -240,6 +240,8 @@ kbd {
 }
 
 .content {
+  /* Past the gutter, whether or not the handle is in it: the loading skeleton has none. */
+  grid-column: 3;
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -269,6 +271,10 @@ kbd {
 
   .outline-resizer {
     display: none;
+  }
+
+  .content {
+    grid-column: auto;
   }
 }
 
