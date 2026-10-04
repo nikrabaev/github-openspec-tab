@@ -125,6 +125,22 @@ try {
   check(`the tab is styled (layout is ${display})`, display === 'grid');
   await page.screenshot({ path: join(out, '2-openspec-tab.png') });
 
+  // The outline's edge is dragged to resize it, and the background script keeps the width.
+  const outlineWidth = () =>
+    page
+      .locator('openspec-tab .outline')
+      .evaluate((element) => Math.round(element.getBoundingClientRect().width));
+  const edge = await page.locator('openspec-tab .outline-resizer').boundingBox();
+  const before = await outlineWidth();
+  if (edge) {
+    await page.mouse.move(edge.x + edge.width / 2, edge.y + 200);
+    await page.mouse.down();
+    await page.mouse.move(edge.x + edge.width / 2 + 90, edge.y + 240, { steps: 5 });
+    await page.mouse.up();
+  }
+  const resized = await outlineWidth();
+  check(`dragging the outline's edge resizes it (${before} → ${resized})`, resized === before + 90);
+
   // Review comments are read without a token here (a public repository, through REST).
   await page.waitForTimeout(2500);
   const missing = await page.getByText('Review comments are missing').count();
@@ -203,6 +219,8 @@ try {
     .first()
     .waitFor({ timeout: 30_000 });
   check('reload restores the tab from the URL', true);
+  const restored = await outlineWidth();
+  check(`and the outline is as wide as it was left (${restored})`, restored === resized);
 
   await page.goBack();
   await page.waitForTimeout(1000);

@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { LoadError, LoadedPull } from '@/github/load';
-import { DEFAULT_PREFERENCES, type Preferences, type ReviewState } from '@/github/messages';
+import type { Preferences, ReviewState } from '@/github/messages';
 import { blobUrl, diffFileUrl, pullKey } from '@/github/route';
 import { buildGlossaryIndex } from '@/openspec';
 import { CommentsContext, useCommentsState } from './comments';
@@ -11,6 +11,7 @@ import { HelpDialog } from './components/Help';
 import { Outline } from './components/Outline';
 import { OverviewCard } from './components/Overview';
 import { ProposalSection } from './components/Proposal';
+import { OutlineResizer } from './components/Resizer';
 import { EmptyState, ErrorState, LoadingState } from './components/States';
 import { TasksSection } from './components/Tasks';
 import {
@@ -64,28 +65,35 @@ function Ready({
   const [current, setCurrent] = useState<string | null>(null);
   const [filter, setFilter] = useState('');
   const [help, setHelp] = useState(false);
-  const [prefs, setPrefs] = useState<Preferences>(DEFAULT_PREFERENCES);
+  const [prefs, setPrefs] = useState<Preferences>(() => services.preferences());
   const [review, setReview] = useState<ReviewState>({ items: {} });
   const key = pullKey(data.pull);
 
   useEffect(() => {
     let cancelled = false;
-    services.loadPreferences().then((loaded) => !cancelled && setPrefs(loaded));
     services.loadReview(key).then((loaded) => !cancelled && setReview(loaded ?? { items: {} }));
     return () => {
       cancelled = true;
     };
   }, [services, key]);
 
-  const setView = useCallback(
-    (diffView: Preferences['diffView']) => {
+  const updatePrefs = useCallback(
+    (change: Partial<Preferences>) => {
       setPrefs((previous) => {
-        const next = { ...previous, diffView };
+        const next = { ...previous, ...change };
         void services.savePreferences(next);
         return next;
       });
     },
     [services],
+  );
+  const setView = useCallback(
+    (diffView: Preferences['diffView']) => updatePrefs({ diffView }),
+    [updatePrefs],
+  );
+  const setOutlineWidth = useCallback(
+    (outlineWidth: number) => updatePrefs({ outlineWidth }),
+    [updatePrefs],
   );
 
   const reviewValue = useMemo<ReviewContextValue>(
@@ -282,7 +290,11 @@ function Ready({
       <ReviewContext.Provider value={reviewValue}>
         <CommentsContext.Provider value={comments}>
           <DiffViewContext.Provider value={prefs.diffView}>
-            <div className="layout" ref={root}>
+            <div
+              className="layout"
+              ref={root}
+              style={{ '--outline-width': `${prefs.outlineWidth}px` } as CSSProperties}
+            >
               <Outline
                 items={visibleOutline}
                 current={current}
@@ -295,6 +307,7 @@ function Ready({
                 progress={progress}
                 onHelp={() => setHelp(true)}
               />
+              <OutlineResizer width={prefs.outlineWidth} layout={root} onResize={setOutlineWidth} />
               <main className={`content view-${prefs.diffView}`}>
                 {data.warnings.map((warning) => (
                   <Callout key={warning} tone="attention" icon={<AlertIcon />} title="Incomplete">

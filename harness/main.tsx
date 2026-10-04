@@ -176,8 +176,9 @@ function Harness() {
         stored<ReviewState | null>(`harness:review:${fixture}:${key}`, null),
       saveReview: async (key, review) =>
         localStorage.setItem(`harness:review:${fixture}:${key}`, JSON.stringify(review)),
-      loadPreferences: async () => ({
-        ...stored<Preferences>('harness:prefs', DEFAULT_PREFERENCES),
+      preferences: () => ({
+        ...DEFAULT_PREFERENCES,
+        ...stored<Partial<Preferences>>('harness:prefs', {}),
         ...(params.get('view') ? { diffView: params.get('view') as Preferences['diffView'] } : {}),
       }),
       savePreferences: async (prefs) =>
