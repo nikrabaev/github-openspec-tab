@@ -8,11 +8,12 @@ import {
   snapshotFromFixture,
 } from '../harness/fakeComments';
 import type { CommentsSnapshot } from '../src/github/comments';
-import type { LoadedPull } from '../src/github/load';
+import type { LoadedPull, PullFacts } from '../src/github/load';
 import { parseGlossary } from '../src/openspec';
 import { App } from '../src/ui/App';
 import { isCompact, layoutRows, pairHalves } from '../src/ui/components/common';
 import { when } from '../src/ui/components/Discussion';
+import { PullHeader } from '../src/ui/components/PullHeader';
 import type { Services } from '../src/ui/context';
 import { Markdown, MarkdownProvider } from '../src/ui/markdown/Markdown';
 import { looksLikePath, resolveRepoPath } from '../src/ui/markdownOptions';
@@ -30,11 +31,24 @@ const services: Services = {
   reload: () => {},
 };
 
+const FACTS: PullFacts = {
+  baseSha: 'b'.repeat(40),
+  headSha: 'a'.repeat(40),
+  state: 'open',
+  title: 'Group rides: unlock and bill several bikes together',
+  draft: false,
+  author: 'mira',
+  mergedBy: null,
+  commits: 9,
+  base: { label: 'main', ref: 'main', repo: 'pedalway/pedalway' },
+  head: { label: 'bks-142-group-rides', ref: 'bks-142-group-rides', repo: 'pedalway/pedalway' },
+};
+
 function loaded(fixture: string): LoadedPull {
   const { plan, model } = modelOf(fixture);
   return {
     pull: { owner: 'pedalway', repo: 'pedalway', number: 128 },
-    facts: { baseSha: 'b'.repeat(40), headSha: 'a'.repeat(40), baseRef: 'main', state: 'open' },
+    facts: FACTS,
     plan,
     model,
     glossary: parseGlossary(readTree(`${FIXTURES}/${fixture}/base`)['docs/CONTEXT.md'] ?? ''),
@@ -147,6 +161,57 @@ describe('App', () => {
     expect(html).toContain('has no matching TO: line');
     expect(html).toContain('Past rides list');
     expect(html).toContain('Fix unlock timeouts');
+  });
+
+  it("carries GitHub's compact pull request header, hidden until the page is scrolled", () => {
+    const html = render('showcase');
+    const header = /<header class="pull-head"[^>]*>.*?<\/header>/s.exec(html)?.[0] ?? '';
+    expect(header).toContain('hidden=""');
+    expect(header).toContain('class="pull-state pull-state-open"');
+    expect(
+      header
+        .replace(/<svg.*?<\/svg>|<[^>]+>/gs, ' ')
+        .replace(/\s+/g, ' ')
+        .trim(),
+    ).toBe(
+      'Open Group rides: unlock and bill several bikes together #128 mira wants to merge 9 commits into main from bks-142-group-rides',
+    );
+    expect(header).toContain(
+      'href="https://github.com/pedalway/pedalway/tree/bks-142-group-rides"',
+    );
+    // Not on the states that have nothing to scroll.
+    expect(render('empty')).not.toContain('pull-head');
+  });
+
+  it('words the header as GitHub does for a draft, a merged and a fork pull request', () => {
+    const header = (facts: Partial<PullFacts>) =>
+      toHtml(
+        <PullHeader
+          pull={{ owner: 'pedalway', repo: 'pedalway', number: 128 }}
+          facts={{ ...FACTS, ...facts }}
+        />,
+      )
+        .replace(/<svg.*?<\/svg>|<[^>]+>/gs, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    expect(header({ draft: true })).toMatch(/^Draft Group rides/);
+    expect(header({ state: 'closed', draft: true })).toMatch(/^Closed Group rides/);
+    expect(header({ state: 'merged', mergedBy: 'tomas', commits: 1 })).toContain(
+      'Merged Group rides: unlock and bill several bikes together #128 tomas merged 1 commit into main',
+    );
+    // From a fork: both branches carry their owner, and a deleted fork has no link.
+    const fork = toHtml(
+      <PullHeader
+        pull={{ owner: 'pedalway', repo: 'pedalway', number: 128 }}
+        facts={{
+          ...FACTS,
+          base: { label: 'pedalway:main', ref: 'main', repo: 'pedalway/pedalway' },
+          head: { label: 'mira:group-rides', ref: 'group-rides', repo: null },
+        }}
+      />,
+    );
+    expect(fork).toContain('>pedalway:main</a>');
+    expect(fork).toContain('<span class="pull-branch pull-branch-head">mira:group-rides</span>');
   });
 
   it('shows a friendly empty state, a skeleton and errors', () => {

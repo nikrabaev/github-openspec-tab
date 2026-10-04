@@ -68,7 +68,7 @@ This tab reads the same files and shows them the way a reviewer thinks about the
 - **Glossary on hover:** if the repository has `docs/CONTEXT.md` (or `CONTEXT.md`), its terms are underlined and show their definition. Words the glossary says to avoid are underlined differently.
 - **Format problems, inline:** a requirement with no scenario, a `MODIFIED` requirement that matches nothing in the base spec, a `FROM:` without a `TO:`. A file that cannot be read as OpenSpec is shown as plain rendered Markdown.
 - **A sticky outline** with a filter and keyboard navigation.
-- **Headers that stay in view:** GitHub's compact pull request header stays at the top of the window, as it does on the other tabs. Below it, the header of the section you are in and of the requirement you are reading stick while you scroll, with "Comment" and "Mark as read" in reach.
+- **Headers that stay in view:** a compact pull request header (state, title, branches) stays at the top of the window, like the one on GitHub's own tabs, whichever page you open the tab from. Below it, the header of the section you are in and of the requirement you are reading stick while you scroll, with "Comment" and "Mark as read" in reach.
 - **GitHub's own look:** the tab uses GitHub's colours, so it follows the light, dark and dimmed themes.
 
 <table>

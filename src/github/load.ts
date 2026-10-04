@@ -56,12 +56,29 @@ function toLoadError(result: ApiResult): LoadError {
   return new LoadError('unknown', result.message ?? `GitHub answered ${result.status}`, detail);
 }
 
+/** A branch of the pull request, as GitHub's own header names it. */
+export interface BranchFacts {
+  /** `branch`, or `owner:branch` when the pull request comes from another repository. */
+  label: string;
+  ref: string;
+  /** `owner/name`, or null when the repository is gone (a deleted fork). */
+  repo: string | null;
+}
+
 export interface PullFacts {
   /** Merge base of the base branch and the head: what "before" means, as in Files changed. */
   baseSha: string;
   headSha: string;
-  baseRef: string;
   state: 'open' | 'closed' | 'merged';
+  // What GitHub's pull request header says, for the one the tab keeps on screen.
+  title: string;
+  draft: boolean;
+  author: string;
+  /** Who merged it, once it is merged. */
+  mergedBy: string | null;
+  commits: number;
+  base: BranchFacts;
+  head: BranchFacts;
 }
 
 export interface LoadedPull {
@@ -76,11 +93,23 @@ export interface LoadedPull {
   readFile(side: 'base' | 'head', path: string): Promise<string | null>;
 }
 
+interface BranchResponse {
+  sha: string;
+  ref: string;
+  label?: string;
+  repo?: { full_name?: string } | null;
+}
+
 interface PullResponse {
   state: string;
   merged: boolean;
-  base: { sha: string; ref: string };
-  head: { sha: string };
+  title?: string;
+  draft?: boolean;
+  commits?: number;
+  user?: { login?: string } | null;
+  merged_by?: { login?: string } | null;
+  base: BranchResponse;
+  head: BranchResponse;
 }
 
 interface TreeResponse {
@@ -186,11 +215,23 @@ export async function loadPull(
     );
   }
 
+  const sameRepo = info.head.repo?.full_name === info.base.repo?.full_name;
+  const branch = (side: BranchResponse): BranchFacts => ({
+    label: sameRepo ? side.ref : (side.label ?? side.ref),
+    ref: side.ref,
+    repo: side.repo?.full_name ?? null,
+  });
   const facts: PullFacts = {
     baseSha,
     headSha: info.head.sha,
-    baseRef: info.base.ref,
     state: info.merged ? 'merged' : info.state === 'open' ? 'open' : 'closed',
+    title: info.title ?? '',
+    draft: Boolean(info.draft),
+    author: info.user?.login ?? 'ghost',
+    mergedBy: info.merged_by?.login ?? null,
+    commits: info.commits ?? 0,
+    base: branch(info.base),
+    head: branch(info.head),
   };
   const commitOf = (side: 'base' | 'head') => (side === 'base' ? facts.baseSha : facts.headSha);
 
