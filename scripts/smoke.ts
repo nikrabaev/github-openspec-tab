@@ -244,10 +244,14 @@ try {
 
   // "Files changed" is a page of its own with no compact header from GitHub: ours must be there.
   await page.goto(`${url.replace(/[#?].*$/, '')}/files#openspec`, { waitUntil: 'load' });
-  // A card of the loaded view: the loading skeleton has `.req` placeholders too.
-  const lastCard = page.locator('openspec-tab .req:has(.req-head)').last();
-  await lastCard.waitFor({ timeout: 30_000 });
-  await lastCard.scrollIntoViewIfNeeded();
+  // The loaded view, not the loading skeleton: only real cards have a header of their own.
+  await page
+    .locator('openspec-tab .req-head')
+    .first()
+    .waitFor({ state: 'attached', timeout: 30_000 });
+  await page.evaluate(() =>
+    window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'instant' }),
+  );
   const pullHead = page.locator('openspec-tab .pull-head');
   await pullHead.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
   const onFiles = await pullHead.evaluate((header) => {
