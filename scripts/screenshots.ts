@@ -61,7 +61,7 @@ const SHOTS: Shot[] = [
     name: 'modified-split',
     view: 'split',
     target: `${GROUP_RIDES}/spec/ride-unlock/unlock-by-qr-code`,
-    hero: ['light'],
+    hero: ['light', 'dark'],
   },
   {
     name: 'modified-new',

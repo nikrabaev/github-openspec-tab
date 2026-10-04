@@ -21,8 +21,18 @@ A browser extension that adds an **OpenSpec** tab to every GitHub pull request, 
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/readme/modified-inline-light.png" alt="A modified requirement with removed words struck and added words highlighted"></td>
-    <td width="50%"><img src="docs/readme/modified-split-light.png" alt="The same requirement shown side by side, old against new"></td>
+    <td width="50%">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="docs/readme/modified-inline-dark.png">
+        <img src="docs/readme/modified-inline-light.png" alt="A modified requirement with removed words struck and added words highlighted">
+      </picture>
+    </td>
+    <td width="50%">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="docs/readme/modified-split-dark.png">
+        <img src="docs/readme/modified-split-light.png" alt="The same requirement shown side by side, old against new">
+      </picture>
+    </td>
   </tr>
   <tr>
     <td align="center"><sub>What changed in a requirement, word by word</sub></td>
