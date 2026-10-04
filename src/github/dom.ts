@@ -27,9 +27,9 @@ const REACT_ROOT_SELECTOR = 'react-app, react-partial';
 const COUNTER_SELECTOR = '[data-component="CounterLabel"], .Counter';
 const SELECTED_SELECTOR = '[aria-current="page"], .selected';
 
-// The OpenSpec mark: a pixel-art ring around a solid bar, on an 8 x 9 grid of 1.75-unit cells.
+// The OpenSpec mark: a pixel-art ring around a solid bar, on a 6 x 7 grid of 2-unit cells.
 const ICON_PATHS = [
-  'M6.25.125h3.5v1.75h-3.5ZM2.75 1.875h3.5v3.5h-3.5ZM9.75 1.875h3.5v3.5h-3.5ZM1 5.375h1.75v5.25H1ZM6.25 5.375h3.5v5.25h-3.5ZM13.25 5.375H15v5.25h-1.75ZM2.75 10.625h3.5v3.5h-3.5ZM9.75 10.625h3.5v3.5h-3.5ZM6.25 14.125h3.5v1.75h-3.5Z',
+  'M6 1h4v2H6ZM4 3h2v2H4ZM10 3h2v2h-2ZM2 5h2v6H2ZM6 5h4v6H6ZM12 5h2v6h-2ZM4 11h2v2H4ZM10 11h2v2h-2ZM6 13h4v2H6Z',
 ];
 
 /** Rules that must apply to GitHub's page itself, outside our shadow root. */
