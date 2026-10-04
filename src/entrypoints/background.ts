@@ -1,8 +1,10 @@
 import { browser } from 'wxt/browser';
 import { defineBackground } from 'wxt/utils/define-background';
+import { checkedVariables, OPERATIONS, type OperationName } from '@/github/graphql';
 import {
   type ApiResult,
   DEFAULT_PREFERENCES,
+  type GraphqlResult,
   isAllowedApiPath,
   type Message,
   type Preferences,
@@ -88,12 +90,75 @@ async function callApi(path: string, etag?: string): Promise<ApiResult> {
   };
 }
 
+/**
+ * Run one of the tab's GraphQL operations, for review comments. GraphQL always
+ * needs a token, and writing needs one that may write pull requests. As with
+ * REST, the token is attached here and never leaves this worker.
+ */
+async function callGraphql(operation: string, variables: unknown): Promise<GraphqlResult> {
+  const failed = (failure: GraphqlResult['failure'], message: string | null): GraphqlResult => ({
+    ok: false,
+    failure,
+    data: null,
+    message,
+  });
+  const checked = checkedVariables(operation, variables);
+  if (!checked) return failed('refused', 'Request refused: not an operation this extension runs.');
+  const token = await readToken();
+  if (!token) return failed('no-token', null);
+
+  let response: Response;
+  try {
+    response = await fetch(`${API}/graphql`, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/vnd.github+json',
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        query: OPERATIONS[operation as OperationName].document,
+        variables: checked,
+      }),
+      credentials: 'omit',
+      cache: 'no-store',
+    });
+  } catch {
+    return failed('network', 'Could not reach api.github.com.');
+  }
+
+  let body: {
+    data?: unknown;
+    errors?: Array<{ type?: string; message?: string }>;
+    message?: string;
+  };
+  try {
+    body = await response.json();
+  } catch {
+    return failed('failed', `GitHub answered with status ${response.status}.`);
+  }
+  if (response.status === 401 || response.status === 403) {
+    return failed('forbidden', body.message ?? null);
+  }
+  const error = body.errors?.[0];
+  if (error) {
+    const message = error.message ?? null;
+    const forbidden =
+      error.type === 'FORBIDDEN' || /not accessible|must have|permission/i.test(message ?? '');
+    return failed(forbidden ? 'forbidden' : 'invalid', message);
+  }
+  if (!response.ok) return failed('failed', body.message ?? null);
+  return { ok: true, failure: null, data: body.data ?? null, message: null };
+}
+
 type RepoFlags = Record<string, { hasOpenSpec: boolean; at: number }>;
 
 async function handle(message: Message): Promise<unknown> {
   switch (message.type) {
     case 'api':
       return callApi(message.path, message.etag);
+    case 'graphql':
+      return callGraphql(message.operation, message.variables);
     case 'token-status':
       return { hasToken: (await readToken()) !== null };
     case 'open-options':

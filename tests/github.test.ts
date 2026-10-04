@@ -77,6 +77,7 @@ describe('API allowlist', () => {
     expect(isAllowedApiPath(`/repos/o/r/compare/${sha}...${sha}?per_page=1&page=2`)).toBe(true);
     expect(isAllowedApiPath(`/repos/o/r/git/trees/${sha}:openspec?recursive=1`)).toBe(true);
     expect(isAllowedApiPath(`/repos/o/r/git/blobs/${sha}`)).toBe(true);
+    expect(isAllowedApiPath('/repos/o/r/pulls/12/comments?per_page=100&page=1')).toBe(true);
   });
 
   it('refuses everything else, including dot segments', () => {
@@ -84,6 +85,9 @@ describe('API allowlist', () => {
       '/user',
       '/repos/o/r',
       '/repos/o/r/pulls/12/files',
+      '/repos/o/r/pulls/12/comments',
+      '/repos/o/r/pulls/12/comments/3/replies',
+      '/repos/o/r/issues/12/comments?per_page=100&page=1',
       '/repos/o/r/contents/secret',
       `/repos/o/r/git/trees/${sha}:../../x?recursive=1`,
       '/repos/../r/pulls/1',
@@ -93,6 +97,14 @@ describe('API allowlist', () => {
       expect(isAllowedApiPath(path), path).toBe(false);
     }
   });
+});
+
+/** These tests load pull requests; none of them reads comments. */
+const noGraphql: Backend['graphql'] = async () => ({
+  ok: false,
+  failure: 'no-token',
+  data: null,
+  message: null,
 });
 
 const BASE_TIP = '1'.repeat(40);
@@ -130,6 +142,7 @@ function fakeGitHub(fixture: string, options: { sessionWorks?: boolean } = {}) {
   const calls: string[] = [];
   const rawCalls: string[] = [];
   const backend: Backend = {
+    graphql: noGraphql,
     async api(path) {
       calls.push(path);
       if (/\/pulls\/\d+$/.test(path)) {
@@ -236,6 +249,7 @@ describe('loadPull', () => {
         api: async () => result,
         raw: async () => null,
         probe: async () => null,
+        graphql: noGraphql,
       };
       return loadPull(pull, backend).then(
         () => 'loaded',

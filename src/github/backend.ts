@@ -1,4 +1,5 @@
-import type { ApiResult, Message, MessageResult } from './messages';
+import type { GraphqlVariables, OperationName } from './graphql';
+import type { ApiResult, GraphqlResult, Message, MessageResult } from './messages';
 import { type PullRef, rawUrl } from './route';
 
 /** Everything the loader needs from the outside world. The dev harness supplies its own. */
@@ -11,6 +12,8 @@ export interface Backend {
   raw(pull: PullRef, commit: string, path: string): Promise<string | null>;
   /** Whether `openspec/` exists on the default branch. `null` when that could not be found out. */
   probe(pull: PullRef, root: string): Promise<boolean | null>;
+  /** Run one of the review-comment operations. Fails with `no-token` when none is stored. */
+  graphql(operation: OperationName, variables: GraphqlVariables): Promise<GraphqlResult>;
 }
 
 export async function send<M extends Message>(message: M): Promise<MessageResult[M['type']]> {
@@ -27,6 +30,7 @@ export async function send<M extends Message>(message: M): Promise<MessageResult
  */
 export const extensionBackend: Backend = {
   api: (path, etag) => send({ type: 'api', path, ...(etag ? { etag } : {}) }),
+  graphql: (operation, variables) => send({ type: 'graphql', operation, variables }),
 
   async raw(pull, commit, path) {
     const response = await fetch(rawUrl(pull, commit, path), { credentials: 'same-origin' });

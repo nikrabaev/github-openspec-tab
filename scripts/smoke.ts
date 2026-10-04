@@ -75,6 +75,18 @@ try {
   check(`the tab is styled (layout is ${display})`, display === 'grid');
   await page.screenshot({ path: join(out, '2-openspec-tab.png') });
 
+  // Review comments are read without a token here (a public repository, through REST).
+  await page.waitForTimeout(2500);
+  const missing = await page.getByText('Review comments are missing').count();
+  const threads = await page.locator('openspec-tab .thread').count();
+  check(`review comments were read (${threads} threads shown)`, missing === 0);
+  if (threads > 0) {
+    await page.locator('openspec-tab .thread').first().scrollIntoViewIfNeeded();
+    await page.screenshot({ path: join(out, '2b-review-threads.png') });
+    const writable = await page.locator('openspec-tab .comment-trigger').count();
+    check('without a token nothing offers to write', writable === 0);
+  }
+
   const firstCard = page.locator('openspec-tab .req').first();
   if (await firstCard.count()) {
     await firstCard.scrollIntoViewIfNeeded();

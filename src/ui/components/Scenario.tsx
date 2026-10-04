@@ -1,5 +1,7 @@
+import { createContext, useContext } from 'react';
 import type { DiffStatus } from '@/diff/blocks';
 import type { PartRow, ScenarioDiff } from '@/diff/requirement';
+import type { CommentTarget } from '@/github/comments';
 import type { Scenario, ScenarioPart } from '@/openspec';
 import { ChevronIcon } from '../icons';
 import {
@@ -11,6 +13,20 @@ import {
   TermSide,
 } from '../markdown/Markdown';
 import { plural } from './common';
+import { CommentTrigger } from './Discussion';
+
+/**
+ * Says where a scenario can be commented on, by its name. Set by the card of a
+ * requirement whose scenarios are on the new side of the diff; null elsewhere.
+ */
+export const ScenarioTargets = createContext<
+  ((name: string) => { region: string; target: CommentTarget } | null) | null
+>(null);
+
+function ScenarioComment({ name }: { name: string }) {
+  const place = useContext(ScenarioTargets)?.(name);
+  return place ? <CommentTrigger region={place.region} target={place.target} /> : null;
+}
 
 const STATUS_TEXT: Record<DiffStatus, string | null> = {
   same: null,
@@ -121,6 +137,8 @@ function Summary(props: {
         {props.name}
       </span>
       {status && <span className={`tag tag-${props.status}`}>{status}</span>}
+      <span className="grow" />
+      {props.status !== 'removed' && <ScenarioComment name={props.name} />}
       <span className="scn-count">{props.count}</span>
     </summary>
   );
@@ -212,6 +230,8 @@ export function ScenarioSplitView({ diff }: { diff: ScenarioDiff }) {
               <span className="muted">Not in the new version</span>
             )}
             {status && <span className={`tag tag-${diff.status}`}>{status}</span>}
+            <span className="grow" />
+            {diff.after && <ScenarioComment name={diff.name} />}
           </span>
         </span>
       </summary>

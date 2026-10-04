@@ -23,6 +23,8 @@ interface Shot {
   /** Take the picture in a full-width window this many pixels wide. */
   wide?: number;
   state?: string;
+  /** What the reader can do with review comments: see `?comments=` in the harness. */
+  comments?: 'read' | 'review' | 'off';
   view?: 'inline' | 'split' | 'new';
   /** Item the page is scrolled to. */
   target?: string;
@@ -76,6 +78,37 @@ const SHOTS: Shot[] = [
     target: `${GROUP_RIDES}/spec/ride-unlock/group-bikes-come-from-one-station`,
   },
   { name: 'new-capability', target: `${GROUP_RIDES}/spec/group-rides` },
+  {
+    // Review threads on the requirement they were left on, one of them on a scenario.
+    name: 'comments',
+    target: `${GROUP_RIDES}/spec/ride-unlock/unlock-by-qr-code`,
+    hero: ['light'],
+    async prepare(page) {
+      await page.mouse.move(800, 400);
+      await page.mouse.wheel(0, 330);
+    },
+  },
+  {
+    name: 'comments-compose',
+    target: `${GROUP_RIDES}/spec/ride-unlock/group-bikes-come-from-one-station`,
+    async prepare(page) {
+      const card = page.locator(
+        `[data-item="${GROUP_RIDES}/spec/ride-unlock/group-bikes-come-from-one-station"]`,
+      );
+      await card.getByRole('button', { name: 'Comment', exact: true }).click();
+      await page.keyboard.type('Should this also cover a bike returned to another dock?');
+    },
+  },
+  {
+    // A review in progress: a pending reply, and the dialog that submits the review.
+    name: 'comments-review',
+    comments: 'review',
+    target: `${GROUP_RIDES}/proposal`,
+    async prepare(page) {
+      await page.getByRole('button', { name: 'Finish review' }).click();
+    },
+  },
+  { name: 'comments-read-only', comments: 'read', target: `${GROUP_RIDES}/design` },
   {
     // Scrolled into a card: the section's header and the card's own header stay at the top.
     name: 'sticky-headers',
@@ -181,6 +214,7 @@ async function capture(page: Page, base: string, shot: Shot, theme: string, file
     await page.setViewportSize({ width: shot.wide, height: 1200 });
   }
   if (shot.state) query.set('state', shot.state);
+  if (shot.comments) query.set('comments', shot.comments);
   if (shot.view) query.set('view', shot.view);
   await page.goto(`${base}/?${query}${shot.target ? `#openspec/${shot.target}` : '#openspec'}`);
   await page.locator('#openspec-tab-host .openspec-tab').waitFor();
@@ -222,6 +256,8 @@ try {
       for (const shot of SHOTS) {
         if (scale === 2 && !shot.hero?.includes(theme)) continue;
         const page = await context.newPage();
+        // Comment dates read "2 days ago": pin the clock so the pictures do not change by the day.
+        await page.clock.setFixedTime(new Date('2026-10-01T12:00:00Z'));
         const file = join(scale === 2 ? README : OUT, `${shot.name}-${theme}.png`);
         await capture(page, base, shot, theme, file);
         await page.evaluate(() => localStorage.clear());

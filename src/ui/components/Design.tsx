@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type {
   ChangeView,
   Decision,
@@ -19,6 +20,7 @@ import {
   Section,
 } from './common';
 import { DiagramFigure } from './Diagram';
+import { BlockComment, BlockDiscussion, BlockHead } from './Discussion';
 
 /** Half a wide window is still a comfortable column for prose, however long it is. */
 const LONG = 20_000;
@@ -49,7 +51,11 @@ function Decisions({ decisions }: { decisions: Decision[] }) {
         >
           <h5>
             <span className="decision-number">{index + 1}</span>
-            {decision.title}
+            <span className="grow">{decision.title}</span>
+            <BlockComment
+              line={decision.line}
+              subject={`Decision ${index + 1}: ${decision.title}`}
+            />
           </h5>
           <Markdown source={decision.body} />
           {decision.alternatives && (
@@ -61,9 +67,21 @@ function Decisions({ decisions }: { decisions: Decision[] }) {
               <Markdown source={decision.alternatives} />
             </details>
           )}
+          <BlockDiscussion line={decision.line} />
         </li>
       ))}
     </ol>
+  );
+}
+
+/** A titled block of the design, with the button to comment on it and the threads left on it. */
+function Block({ part, children }: { part: DesignPart; children: ReactNode }) {
+  return (
+    <div className="block">
+      <BlockHead title={part.title} line={part.line} subject={`Design: ${part.title}`} />
+      {children}
+      <BlockDiscussion line={part.line} />
+    </div>
   );
 }
 
@@ -73,8 +91,7 @@ function Part({ part }: { part: DesignPart | Preamble }) {
       return <Markdown source={part.body} />;
     case 'goals':
       return (
-        <div className="block">
-          <h4>{part.title}</h4>
+        <Block part={part}>
           {part.intro && <Markdown source={part.intro} />}
           <div className="goals">
             <div className="goal-card goal-yes">
@@ -98,20 +115,18 @@ function Part({ part }: { part: DesignPart | Preamble }) {
               )}
             </div>
           </div>
-        </div>
+        </Block>
       );
     case 'decisions':
       return (
-        <div className="block">
-          <h4>{part.title}</h4>
+        <Block part={part}>
           {part.intro && <Markdown source={part.intro} />}
           <Decisions decisions={part.decisions} />
-        </div>
+        </Block>
       );
     case 'risks':
       return (
-        <div className="block">
-          <h4>{part.title}</h4>
+        <Block part={part}>
           {part.intro && <Markdown source={part.intro} />}
           <ul className="risks">
             {part.risks.map((risk) => (
@@ -137,32 +152,36 @@ function Part({ part }: { part: DesignPart | Preamble }) {
             ))}
           </ul>
           {part.outro && <Markdown source={part.outro} />}
-        </div>
+        </Block>
       );
     case 'open-questions':
       if (part.count === 0) {
         return (
-          <div className="block">
-            <h4>{part.title}</h4>
+          <Block part={part}>
             <p className="muted">None.</p>
-          </div>
+          </Block>
         );
       }
       return (
         <Callout
           tone="attention"
           icon={<QuestionIcon />}
-          title={`Needs your answer: ${plural(part.count, 'open question')}`}
+          title={
+            <>
+              Needs your answer: {plural(part.count, 'open question')}
+              <BlockComment line={part.line} subject={`Design: ${part.title}`} />
+            </>
+          }
         >
           <Markdown source={part.body} />
+          <BlockDiscussion line={part.line} />
         </Callout>
       );
     default:
       return (
-        <div className="block">
-          <h4>{part.title}</h4>
+        <Block part={part}>
           {part.body.trim() ? <Markdown source={part.body} /> : <p className="muted">Empty.</p>}
-        </div>
+        </Block>
       );
   }
 }
@@ -214,6 +233,7 @@ export function DesignSection({ change, doc }: { change: ChangeView; doc: DocVie
       title="Design"
       icon={<PencilIcon />}
       hash={doc.hash}
+      doc={{ path: doc.path, subject: 'Design' }}
       meta={
         design.openQuestions > 0 && (
           <span className="tag tag-changed">{plural(design.openQuestions, 'open question')}</span>

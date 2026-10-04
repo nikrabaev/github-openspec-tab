@@ -7,6 +7,8 @@ export interface Decision {
   body: string;
   /** Markdown of the alternatives considered, folded by default. */
   alternatives: string | null;
+  /** 1-based line of the decision's heading in the file, or 0 when it has none of its own. */
+  line: number;
 }
 
 export interface Risk {
@@ -123,7 +125,10 @@ function cleanDecisionTitle(title: string): string {
     .trim();
 }
 
-function parseDecisions(body: string): { intro: string; decisions: Decision[] } {
+function parseDecisions(body: string): {
+  intro: string;
+  decisions: Array<Omit<Decision, 'line'>>;
+} {
   const sub = splitSections(body, 3);
   if (sub.sections.length > 0) {
     return {
@@ -135,7 +140,7 @@ function parseDecisions(body: string): { intro: string; decisions: Decision[] } 
     };
   }
   const list = splitTopLevelList(body);
-  const decisions: Decision[] = [];
+  const decisions: Array<Omit<Decision, 'line'>> = [];
   for (const item of list.items) {
     const lead = /^(?:\*\*|__)(.+?)(?:\*\*|__)\s*[:.–—-]?\s*([\s\S]*)$/.exec(item);
     const title = lead?.[1]?.replace(/:$/, '').trim();
@@ -193,7 +198,10 @@ export function parseDesign(content: string): DesignDoc {
   const { preamble, sections: raw } = splitSections(clean, 2);
   let openQuestions = 0;
 
-  const sections = raw.map((section): DesignSection => {
+  // Every `###` heading of the file, to find where each decision starts.
+  const subheadings = splitSections(clean, 3).sections.map((section) => section.line);
+
+  const sections = raw.map((section, index): DesignSection => {
     const { title: heading, body, line } = section;
     if (/^context\b/i.test(heading)) return { kind: 'context', title: heading, body, line };
     if (/non[- ]?goals/i.test(heading) || /^goals\b/i.test(heading)) {
@@ -202,8 +210,21 @@ export function parseDesign(content: string): DesignDoc {
     }
     if (/^decisions?\b/i.test(heading)) {
       const parsed = parseDecisions(body);
-      if (parsed.decisions.length > 0)
-        return { kind: 'decisions', title: heading, ...parsed, line };
+      if (parsed.decisions.length > 0) {
+        const end = raw[index + 1]?.line ?? Number.POSITIVE_INFINITY;
+        const starts = subheadings.filter((start) => start > line && start < end);
+        const known = starts.length === parsed.decisions.length;
+        return {
+          kind: 'decisions',
+          title: heading,
+          intro: parsed.intro,
+          decisions: parsed.decisions.map((decision, at) => ({
+            ...decision,
+            line: known ? (starts[at] ?? 0) : 0,
+          })),
+          line,
+        };
+      }
     }
     if (/^risks?\b/i.test(heading) || /trade-?offs?/i.test(heading)) {
       const list = splitTopLevelList(body);

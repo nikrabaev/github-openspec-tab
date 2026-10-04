@@ -12,6 +12,7 @@ import { buildModel, parseGlossary, planLoads, snapshotFromFiles } from '@/opens
 import { App, type LoadState } from '@/ui/App';
 import type { Services } from '@/ui/context';
 import tabCss from '@/ui/styles.css?inline';
+import { type FixtureComments, fakeCommentServices, snapshotFromFixture } from './fakeComments';
 
 const raw = import.meta.glob('../fixtures/**/*', {
   query: '?raw',
@@ -30,6 +31,13 @@ for (const [file, content] of Object.entries(raw)) {
 }
 if (!fixtures.has('empty')) fixtures.set('empty', { base: {}, head: {} });
 
+/** Made-up review threads of a fixture, from its `comments.json`. */
+const fixtureComments = new Map<string, FixtureComments>();
+for (const [file, content] of Object.entries(raw)) {
+  const match = /^\.\.\/fixtures\/([^/]+)\/comments\.json$/.exec(file);
+  if (match?.[1]) fixtureComments.set(match[1], JSON.parse(content) as FixtureComments);
+}
+
 // "focus": the showcase pull request reduced to its one change in progress, for pictures
 // that show a single change from the top of the page.
 const showcase = fixtures.get('showcase');
@@ -45,6 +53,8 @@ if (showcase) {
     if (base[path] !== undefined) head[path] = base[path];
   }
   fixtures.set('focus', { base, head });
+  const comments = fixtureComments.get('showcase');
+  if (comments) fixtureComments.set('focus', comments);
 }
 
 const pull = { owner: 'pedalway', repo: 'pedalway', number: 128 };
@@ -67,6 +77,11 @@ function loadFixture(name: string): LoadedPull {
 const params = new URLSearchParams(location.search);
 /** `?clean=1` hides the harness controls, for pictures. */
 const clean = params.has('clean');
+/**
+ * `?comments=`: `write` (the default) is a reader whose token may comment, `read`
+ * one with no token, `review` one with a review in progress, `off` no comments at all.
+ */
+const commentsMode = params.get('comments') ?? 'write';
 /** `?wide=1` lets the page use the whole window, as GitHub's full-width pull request pages do. */
 const wide = params.has('wide');
 if (wide) document.documentElement.dataset.wide = '';
@@ -91,6 +106,27 @@ const stored = <T,>(key: string, fallback: T): T => {
     return fallback;
   }
 };
+
+function commentServices(fixture: string) {
+  const snapshot = snapshotFromFixture(
+    fixtureComments.get(fixture) ?? null,
+    commentsMode !== 'read',
+  );
+  if (commentsMode === 'review') {
+    // A review in progress: the reader's own reply, not yet submitted.
+    snapshot.pendingReviewId = 'review';
+    snapshot.threads[0]?.comments.push({
+      id: 'comment-pending',
+      author: snapshot.viewer ?? { login: 'sam', avatarUrl: null },
+      body: 'The in-app notice goes out a week before; the stickers are a field task.',
+      createdAt: '2026-09-30T09:00:00Z',
+      url: '#',
+      pending: true,
+      mine: true,
+    });
+  }
+  return fakeCommentServices(snapshot);
+}
 
 function Harness() {
   const [fixture, setFixture] = useState(params.get('fixture') ?? 'showcase');
@@ -143,6 +179,7 @@ function Harness() {
         setHash(location.hash);
       },
       reload: () => setGeneration((value) => value + 1),
+      ...(commentsMode === 'off' ? {} : { comments: commentServices(fixture) }),
     }),
     [fixture],
   );

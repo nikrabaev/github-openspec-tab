@@ -6,6 +6,7 @@ import {
 } from 'wxt/utils/content-script-ui/shadow-root';
 import { defineContentScript } from 'wxt/utils/define-content-script';
 import { extensionBackend, send } from '@/github/backend';
+import { addReply, addThread, loadComments, setResolved, submitReview } from '@/github/comments';
 import {
   alignWithNav,
   ensurePageStyle,
@@ -334,6 +335,19 @@ class Controller {
     },
     reload: () => {
       if (this.pull) void this.load(this.pull, true);
+    },
+    comments: {
+      load: () => {
+        if (!this.pull) throw new Error('No pull request is open.');
+        return loadComments(extensionBackend, this.pull);
+      },
+      addThread: (snapshot, target, body, mode) =>
+        addThread(extensionBackend, snapshot, target, body, mode),
+      reply: (snapshot, threadId, body, mode) =>
+        addReply(extensionBackend, snapshot, threadId, body, mode),
+      setResolved: (threadId, resolved) => setResolved(extensionBackend, threadId, resolved),
+      submitReview: (snapshot, event, body) =>
+        submitReview(extensionBackend, snapshot, event, body),
     },
   };
 

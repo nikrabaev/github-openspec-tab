@@ -123,8 +123,9 @@ export function ErrorState(props: {
             usually means it is private.
           </p>
           <p className="muted">
-            Add a fine-grained, read-only token (Contents and Pull requests). It stays in this
-            browser's extension storage and is only ever sent to api.github.com.
+            Add a fine-grained token with read access to Contents and Pull requests (write access to
+            Pull requests lets you comment from here). It stays in this browser's extension storage
+            and is only ever sent to api.github.com.
           </p>
         </Blank>
       );

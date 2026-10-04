@@ -1,9 +1,11 @@
 import { type RefObject, useEffect, useRef } from 'react';
 import type { Preferences } from '@/github/messages';
+import { useComments } from '../comments';
 import { useReview } from '../context';
 import {
   BookIcon,
   CheckIcon,
+  CommentIcon,
   FileIcon,
   HomeIcon,
   PencilIcon,
@@ -14,7 +16,8 @@ import {
   TasksIcon,
 } from '../icons';
 import type { OutlineItem } from '../outline';
-import { OpDot, ProgressBar } from './common';
+import { OpDot, ProgressBar, plural } from './common';
+import { ReviewBar } from './Discussion';
 
 const ICONS = {
   proposal: BookIcon,
@@ -44,6 +47,7 @@ export function Outline(props: {
   onHelp(): void;
 }) {
   const review = useReview();
+  const comments = useComments();
   const listRef = useRef<HTMLDivElement>(null);
 
   // Keep the current item in view inside the outline, without scrolling the page.
@@ -77,6 +81,8 @@ export function Outline(props: {
           label="Review progress"
         />
       </div>
+
+      <ReviewBar />
 
       <fieldset className="segmented">
         <legend className="sr-only">How modified requirements are shown</legend>
@@ -117,6 +123,7 @@ export function Outline(props: {
           {props.items.map((item) => {
             const Icon = item.icon ? ICONS[item.icon] : null;
             const status = item.hash ? review.statusOf(item.id, item.hash) : null;
+            const open = comments.placement.openByItem.get(item.id) ?? 0;
             return (
               <li key={item.id}>
                 <a
@@ -132,6 +139,15 @@ export function Outline(props: {
                 >
                   {item.op ? <OpDot op={item.op} /> : Icon ? <Icon size={14} /> : null}
                   <span className="outline-label">{item.label}</span>
+                  {open > 0 && (
+                    <span
+                      className="outline-comments"
+                      title={`${plural(open, 'open review thread')}`}
+                    >
+                      <CommentIcon size={12} />
+                      {open}
+                    </span>
+                  )}
                   {item.meta && <span className="outline-meta">{item.meta}</span>}
                   {status === 'read' && (
                     <span className="outline-read" role="img" aria-label="Read">

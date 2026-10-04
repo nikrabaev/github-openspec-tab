@@ -76,8 +76,9 @@ function Options() {
       <h2>Access token</h2>
       <p>
         Public repositories work without a token. For <strong>private repositories</strong> the tab
-        needs a read-only token, because it asks GitHub's API which OpenSpec files a pull request
-        changes.
+        needs a token, because it asks GitHub's API which OpenSpec files a pull request changes. A
+        token is also what lets you <strong>comment, reply and resolve threads</strong> from the
+        tab, on any repository; without one, review comments are shown but not written.
       </p>
       <ol>
         <li>
@@ -96,8 +97,10 @@ function Options() {
           repositories. Under <strong>Repository access</strong>, pick the repositories you review.
         </li>
         <li>
-          Under <strong>Repository permissions</strong>, set <code>Contents</code> and{' '}
-          <code>Pull requests</code> to <strong>Read-only</strong>. Nothing else is needed.
+          Under <strong>Repository permissions</strong>, set <code>Contents</code> to{' '}
+          <strong>Read-only</strong>, and <code>Pull requests</code> to{' '}
+          <strong>Read and write</strong> to comment from the tab, or <strong>Read-only</strong> to
+          only read. Nothing else is needed.
         </li>
         <li>
           Generate the token and paste it below. An organisation may have to approve it first.

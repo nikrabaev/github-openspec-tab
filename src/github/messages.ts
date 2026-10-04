@@ -1,5 +1,7 @@
 /** Messages between the content script and the background worker. */
 
+import type { GraphqlVariables, OperationName } from './graphql';
+
 export interface RateLimit {
   limit: number;
   remaining: number;
@@ -20,6 +22,21 @@ export interface ApiResult {
   etag: string | null;
 }
 
+/** The answer to one of the GraphQL operations in `graphql.ts`. */
+export interface GraphqlResult {
+  ok: boolean;
+  /**
+   * Why it failed. `no-token`: none is stored. `forbidden`: GitHub will not let
+   * this token do it. `invalid`: GitHub turned the request itself down, e.g. a
+   * line that is not part of the diff. `refused`: not an operation this
+   * extension runs. `network`: the request did not get through.
+   */
+  failure: 'no-token' | 'forbidden' | 'invalid' | 'refused' | 'network' | 'failed' | null;
+  data: unknown;
+  /** GitHub's own words about the failure, when it gave any. */
+  message: string | null;
+}
+
 /** Review progress of one pull request: item id → what was read. */
 export interface ReviewState {
   items: Record<string, { hash: string; at: number }>;
@@ -33,6 +50,7 @@ export const DEFAULT_PREFERENCES: Preferences = { diffView: 'inline' };
 
 export type Message =
   | { type: 'api'; path: string; etag?: string }
+  | { type: 'graphql'; operation: OperationName; variables: GraphqlVariables }
   | { type: 'token-status' }
   | { type: 'open-options' }
   | { type: 'review-get'; key: string }
@@ -44,6 +62,7 @@ export type Message =
 
 export interface MessageResult {
   api: ApiResult;
+  graphql: GraphqlResult;
   'token-status': { hasToken: boolean };
   'open-options': null;
   'review-get': ReviewState | null;
@@ -65,6 +84,8 @@ const ALLOWED_API_PATHS = [
   new RegExp(`^${REPO}/compare/${SHA}\\.\\.\\.${SHA}\\?per_page=1&page=2$`),
   new RegExp(`^${REPO}/git/trees/${SHA}(?::[\\w.\\-/]+)?\\?recursive=1$`),
   new RegExp(`^${REPO}/git/blobs/${SHA}$`),
+  // Review comments, read without a token on a public repository.
+  new RegExp(`^${REPO}/pulls/\\d+/comments\\?per_page=100&page=\\d{1,3}$`),
 ];
 
 export function isAllowedApiPath(path: string): boolean {

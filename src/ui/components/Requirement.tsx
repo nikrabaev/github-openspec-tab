@@ -1,12 +1,15 @@
 import { useMemo } from 'react';
 import { diffRequirement } from '@/diff/requirement';
+import { regionKey } from '@/github/placement';
 import { blobUrl, diffLineUrl } from '@/github/route';
 import type { Requirement, RequirementChange } from '@/openspec';
+import { useComments } from '../comments';
 import { useDiffView, usePull } from '../context';
 import { ArrowIcon, ChevronIcon, CommentIcon, ExternalIcon } from '../icons';
 import { Markdown, MarkdownDiff, TermScope, TermSide } from '../markdown/Markdown';
 import { Callout, CopyLink, isCompact, OpLabel, ProblemList, plural, ReadToggle } from './common';
-import { ScenarioDiffView, ScenarioSplitView, ScenarioView } from './Scenario';
+import { CommentTrigger, Discussion } from './Discussion';
+import { ScenarioDiffView, ScenarioSplitView, ScenarioTargets, ScenarioView } from './Scenario';
 
 /** A requirement as written: its statement, then its scenarios. */
 export function RequirementBody(props: { requirement: Requirement; scenariosOpen?: boolean }) {
@@ -95,8 +98,25 @@ function ModifiedBody({ before, after }: { before: Requirement; after: Requireme
 
 function SourceLink({ change }: { change: RequirementChange }) {
   const { data } = usePull();
+  const comments = useComments();
   const source = change.source;
   if (!source) return null;
+  if (comments.canWrite) {
+    // The line goes along even when it is not in the diff: GitHub decides, and a comment it
+    // will not take on the line is left on the file, naming the requirement.
+    return (
+      <CommentTrigger
+        region={regionKey.requirement(change.id)}
+        target={{
+          path: source.path,
+          line: source.line,
+          side: source.side === 'L' ? 'LEFT' : 'RIGHT',
+          subject: `Requirement: ${change.name}`,
+        }}
+        label="Comment"
+      />
+    );
+  }
   if (source.inDiff) {
     return (
       <a
@@ -173,6 +193,28 @@ export function RequirementCard({
     body = <RequirementBody requirement={after} />;
   }
 
+  // A scenario can be commented on where its header is on the new side of the diff.
+  const region = regionKey.requirement(change.id);
+  const scenarioTarget = useMemo(() => {
+    const range = historical
+      ? undefined
+      : change.ranges.find((candidate) => candidate.path === change.source?.path);
+    if (!range || change.source?.side !== 'R') return null;
+    return (name: string) => {
+      const line = range.scenarios.find((scenario) => scenario.name === name)?.line;
+      if (line === undefined) return null;
+      return {
+        region,
+        target: {
+          path: range.path,
+          line,
+          side: 'RIGHT' as const,
+          subject: `Scenario: ${name} (Requirement: ${change.name})`,
+        },
+      };
+    };
+  }, [change, historical, region]);
+
   return (
     <article
       className={`req req-${change.op}`}
@@ -202,8 +244,11 @@ export function RequirementCard({
       </header>
       <ProblemList problems={change.problems} />
       <div className={stacked ? 'req-body is-stacked' : 'req-body'}>
-        <TermScope key={`${view}:${change.hash}`}>{body}</TermScope>
+        <ScenarioTargets.Provider value={scenarioTarget}>
+          <TermScope key={`${view}:${change.hash}`}>{body}</TermScope>
+        </ScenarioTargets.Provider>
       </div>
+      <Discussion region={region} />
     </article>
   );
 }

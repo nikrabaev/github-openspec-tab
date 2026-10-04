@@ -1,10 +1,18 @@
+import { readFileSync } from 'node:fs';
 import type React from 'react';
 import { renderToString } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
+import {
+  type FixtureComments,
+  fakeCommentServices,
+  snapshotFromFixture,
+} from '../harness/fakeComments';
+import type { CommentsSnapshot } from '../src/github/comments';
 import type { LoadedPull } from '../src/github/load';
 import { parseGlossary } from '../src/openspec';
 import { App } from '../src/ui/App';
 import { isCompact, layoutRows, pairHalves } from '../src/ui/components/common';
+import { when } from '../src/ui/components/Discussion';
 import type { Services } from '../src/ui/context';
 import { Markdown, MarkdownProvider } from '../src/ui/markdown/Markdown';
 import { looksLikePath, resolveRepoPath } from '../src/ui/markdownOptions';
@@ -156,6 +164,118 @@ describe('App', () => {
         />,
       ),
     ).toContain('Something went wrong');
+  });
+});
+
+describe('Review comments', () => {
+  const fixture = JSON.parse(
+    readFileSync(`${FIXTURES}/showcase/comments.json`, 'utf8'),
+  ) as FixtureComments;
+  const withComments = (snapshot: CommentsSnapshot) =>
+    toHtml(
+      <App
+        state={{ status: 'ready', data: loaded('showcase') }}
+        repo="pedalway/pedalway"
+        target={null}
+        services={{ ...services, comments: fakeCommentServices(snapshot) }}
+      />,
+    );
+
+  it('shows each thread where it belongs, with what it is on', () => {
+    const html = withComments(snapshotFromFixture(fixture));
+    expect(html).toContain('Two seconds is tight for the older docks');
+    expect(html).toMatch(/Scenario: Successful unlock · line 8<\/a>/);
+    // The link opens the line in Files changed.
+    expect(html).toMatch(/pull\/128\/files#diff-[0-9a-f]{64}R8"/);
+    // The settled thread and the outdated one are folded away, each under one line.
+    expect(html).toContain('1 resolved thread');
+    expect(html).toContain('1 outdated thread');
+    expect(html).toContain('On an earlier version of this file');
+    expect(html).toContain('On the file as a whole');
+    // The outline counts the threads that still want an answer.
+    expect(html.match(/class="outline-comments"/g)).toHaveLength(5);
+  });
+
+  it('lets a reader with a token comment, reply and resolve', () => {
+    const html = withComments(snapshotFromFixture(fixture));
+    expect(html).toContain('Reply…');
+    expect(html).toContain('>Resolve</button>');
+    expect(html).toContain('>Unresolve</button>');
+    expect(html).toContain('title="Comment on Requirement: Unlock by QR code"');
+    expect(html).toContain(
+      'title="Comment on Scenario: Successful unlock (Requirement: Unlock by QR code)"',
+    );
+    expect(html).toContain('title="Comment on Decision 2: The leader scans each bike"');
+    expect(html).toContain('title="Comment on Proposal: What Changes"');
+    expect(html).not.toContain('Reply on GitHub');
+    expect(html).not.toContain('Review in progress');
+  });
+
+  it('is read-only without a token: links to GitHub instead of buttons', () => {
+    const html = withComments(snapshotFromFixture(fixture, false));
+    expect(html).toContain('Two seconds is tight for the older docks');
+    expect(html).toContain('Reply on GitHub');
+    expect(html).not.toContain('comment-trigger');
+    expect(html).not.toContain('Reply…');
+    expect(html).not.toContain('>Resolve</button>');
+    // The requirement keeps its link to the line in Files changed.
+    expect(html).toMatch(/title="Comment on line \d+ of [^"]+ in Files changed"/);
+  });
+
+  it('shows a review in progress and marks its comments as pending', () => {
+    const snapshot = snapshotFromFixture({
+      ...fixture,
+      threads: [
+        ...fixture.threads,
+        {
+          path: 'openspec/changes/bks-142-group-rides/tasks.md',
+          line: 10,
+          comments: [{ author: 'sam', at: '2026-09-30T09:00:00Z', body: 'Mine.', pending: true }],
+        },
+      ],
+    });
+    const html = withComments(snapshot);
+    expect(html).toContain('Review in progress');
+    expect(html).toContain('1 pending comment');
+    expect(html).toContain('>Pending</span>');
+  });
+
+  it('renders comment text inertly, and not as spec text', () => {
+    const html = withComments(
+      snapshotFromFixture({
+        viewer: 'sam',
+        threads: [
+          {
+            path: 'openspec/changes/bks-142-group-rides/proposal.md',
+            line: 12,
+            comments: [
+              {
+                author: 'ines',
+                at: '2026-09-30T09:00:00Z',
+                body: 'The rider MUST see <img src=x onerror=alert(1)> [this](javascript:alert(2))',
+              },
+            ],
+          },
+        ],
+      }),
+    );
+    const comment = html.slice(html.indexOf('class="comment-main"'));
+    const body = comment.slice(0, comment.indexOf('</li>'));
+    expect(body).toContain('&lt;img src=x onerror=alert(1)&gt;');
+    expect(body).not.toMatch(/<img src|href="javascript/);
+    // No SHALL / MUST styling and no glossary underlines in people's words.
+    expect(body).not.toContain('class="kw');
+    expect(body).not.toContain('class="term');
+  });
+
+  it('dates a comment relative to now when it is recent', () => {
+    const now = Date.parse('2026-10-04T12:00:00Z');
+    expect(when('2026-10-04T11:59:40Z', now)).toBe('just now');
+    expect(when('2026-10-04T11:15:00Z', now)).toBe('45 minutes ago');
+    expect(when('2026-10-04T09:00:00Z', now)).toBe('3 hours ago');
+    expect(when('2026-10-02T12:00:00Z', now)).toBe('2 days ago');
+    expect(when('2026-09-12T08:00:00Z', now)).toBe('12 Sep 2026');
+    expect(when('not a date', now)).toBe('');
   });
 });
 

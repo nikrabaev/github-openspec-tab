@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import { regionKey } from '@/github/placement';
 import { blobUrl } from '@/github/route';
 import type { CapabilityView } from '@/openspec';
 import { usePull } from '../context';
@@ -13,6 +14,7 @@ import {
   plural,
   useHeadHeight,
 } from './common';
+import { Discussion } from './Discussion';
 import { RequirementBody, RequirementCard } from './Requirement';
 
 /** One capability's spec: its changed requirements as cards, the rest folded away. */
@@ -40,6 +42,7 @@ export function CapabilitySection({ view }: { view: CapabilityView }) {
       </header>
 
       <ProblemList problems={view.problems} />
+      <Discussion region={regionKey.file(view.id)} />
 
       {view.purpose && (
         <Callout tone="neutral" title={view.purposeBefore ? 'Purpose (changed)' : 'Purpose'}>

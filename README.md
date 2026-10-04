@@ -63,6 +63,7 @@ This tab reads the same files and shows them the way a reviewer thinks about the
 - **A structured proposal and design:** capability names jump to their spec, file paths link to the files, breaking changes are flagged, decisions are cards with their alternatives folded, risks sit beside their mitigations, and open questions are called out.
 - **Diagrams:** `*.excalidraw.svg` files in the change folder are shown inline, with zoom.
 - **Tasks:** progress overall and per group, with the next unchecked task highlighted.
+- **Review comments, in place:** the pull request's review threads appear on the requirement, scenario, decision or section they were left on, and the outline counts the ones still open. With a token you can comment, reply and resolve from the tab, publish a comment at once or keep it in a pending review, and submit the review with a verdict.
 - **Review progress:** "Mark as read" on each section and requirement, remembered per pull request. If the author pushes a change to something you marked, it is flagged as changed since you read it.
 - **Glossary on hover:** if the repository has `docs/CONTEXT.md` (or `CONTEXT.md`), its terms are underlined and show their definition. Words the glossary says to avoid are underlined differently.
 - **Format problems, inline:** a requirement with no scenario, a `MODIFIED` requirement that matches nothing in the base spec, a `FROM:` without a `TO:`. A file that cannot be read as OpenSpec is shown as plain rendered Markdown.
@@ -81,11 +82,11 @@ This tab reads the same files and shows them the way a reviewer thinks about the
   </tr>
   <tr>
     <td width="50%"><img src="docs/readme/overview-light.png" alt="The overview card of a change"></td>
-    <td width="50%"><img src="docs/readme/modified-inline-dark.png" alt="A modified requirement in GitHub's dark theme"></td>
+    <td width="50%"><img src="docs/readme/comments-light.png" alt="Review threads under a requirement: one on a scenario, with a reply box"></td>
   </tr>
   <tr>
     <td align="center"><sub>The overview of a change</sub></td>
-    <td align="center"><sub>In GitHub's dark theme</sub></td>
+    <td align="center"><sub>Review threads, on the requirement they are about</sub></td>
   </tr>
 </table>
 
@@ -116,15 +117,33 @@ Then open any pull request on github.com and choose the **OpenSpec** tab.
 
 ## Private repositories
 
-Public repositories work with no setup. For a private repository the tab needs a read-only token, because it asks GitHub's API which OpenSpec files the pull request changes.
+Public repositories work with no setup. For a private repository the tab needs a token, because it asks GitHub's API which OpenSpec files the pull request changes.
 
 1. Open [GitHub → Settings → Developer settings → Fine-grained tokens → Generate new token](https://github.com/settings/personal-access-tokens/new).
 2. **Resource owner:** the user or organisation that owns the repositories. **Repository access:** the repositories you review.
-3. **Repository permissions:** set **Contents** and **Pull requests** to **Read-only**. Nothing else.
+3. **Repository permissions:** set **Contents** to **Read-only**, and **Pull requests** to **Read and write** if you want to comment from the tab, or **Read-only** if you only want to read. Nothing else.
 4. Generate the token. An organisation may have to approve it first.
 5. Open the extension's settings (the **Add a token** button in the tab, or the extension's "Options") and paste it.
 
 Without a token the tab still shows up on a private repository and tells you one is needed.
+
+## Review comments
+
+The tab shows the pull request's review threads where they belong: on a requirement card (with the scenario a thread is on), in the block or decision of the proposal and design, under a task group, or with the file for a comment on the file as a whole. Resolved threads, and threads left on text that has since changed, fold into one line.
+
+| | Without a token | Token with Pull requests: Read-only | Read and write |
+| --- | --- | --- | --- |
+| See threads | Public repositories | Yes | Yes |
+| See which are resolved | No | Yes | Yes |
+| Comment, reply, resolve, submit a review | No | No | Yes |
+
+Writing works like GitHub's own review:
+
+- **Comment** publishes at once. **Start a review** keeps the comment private until you submit the review; while a review is in progress, everything you write joins it.
+- **Finish review**, in the outline, submits the pending review as a comment, an approval or a request for changes. It publishes every pending comment of the review, including ones you left on other files in GitHub's own view.
+- GitHub takes a line comment only on a line that is part of the diff. When it turns the line down (a requirement that was only moved, for example), the comment is left on the file as a whole and opens with what it is about.
+
+Editing and deleting comments, reactions and suggestions are left to GitHub: each comment's date links to it there.
 
 ## Keyboard
 
@@ -154,6 +173,8 @@ The number on the tab is the count of requirement changes. A pull request with n
 
 **The URL.** The tab lives in the hash: `…/pull/123#openspec`, or `#openspec/<change>/<section>` for a link to one requirement. A hash is never sent to GitHub, so reload, back/forward and shared links work.
 
+**Review comments.** With a token, one GraphQL query reads the threads, and a fixed set of GraphQL mutations writes: the page names an operation and sends its variables, and the background worker holds the documents, so nothing else can be run with the token. Without a token, a public repository's comments are read through the REST API. After every write the threads are read again, so the tab shows what GitHub holds.
+
 **Reading the pull request.** Four small API calls: the pull request, its merge base, and the `openspec/` tree at the merge base and at the head. Changed files are found by comparing the two trees, so a pull request with hundreds of other files costs the same as a small one. File contents are then read from github.com with your signed-in session, falling back to the API.
 
 **OpenSpec rules.** The parsers follow the reference implementation in `@fission-ai/openspec` 1.14: delta section headers are case-insensitive and may repeat, lines inside code fences are ignored, and requirement names match exactly. A name that differs only in case or spacing is treated as a mistake and flagged, as the CLI does. A contract test runs the real CLI on the fixtures and compares results.
@@ -163,10 +184,12 @@ The number on the tab is the count of requirement changes. A pull request with n
 | Permission | Why |
 | --- | --- |
 | `https://github.com/*` | Add the tab and read files with your session |
-| `https://api.github.com/*` | Ask which OpenSpec files a pull request changes |
+| `https://api.github.com/*` | Ask which OpenSpec files a pull request changes; read and write review comments |
 | `storage` | Keep the token, your review progress and your view preference |
 
-The token is kept in the browser's extension storage. Only the extension's background worker reads it, and it attaches it only to requests to api.github.com that are on the tab's short allowlist. It is never put in a URL, never logged and never given to a web page. Nothing is sent anywhere except GitHub.
+The token is kept in the browser's extension storage. Only the extension's background worker reads it, and it attaches it only to requests to api.github.com that are on the tab's short allowlist: a handful of read-only REST paths, and the named review-comment operations. It is never put in a URL, never logged and never given to a web page. Nothing is sent anywhere except GitHub, and nothing is written to GitHub except the comments, replies, resolutions and reviews you submit yourself.
+
+Comment text is rendered like the specs are: without raw HTML.
 
 Markdown from the repository is rendered without raw HTML: any HTML in a spec is shown as text, and only `http`, `https` and `mailto` links are followed.
 
@@ -174,7 +197,8 @@ Markdown from the repository is rendered without raw HTML: any HTML in a spec is
 
 - Only github.com, not GitHub Enterprise Server.
 - The OpenSpec folder must be `openspec/` at the repository root.
-- Without a token GitHub allows 60 API requests an hour per network address. A pull request view uses four, and repositories with no `openspec/` folder use none.
+- Without a token GitHub allows 60 API requests an hour per network address. A pull request view uses five (four for the pull request, one for its comments), and repositories with no `openspec/` folder use none.
+- A thread on a removed line (the old side of the diff), or on a line that a later commit changed, is shown with its file rather than on a requirement.
 - The tab relies on GitHub's page structure, which GitHub can change. `scripts/smoke.ts` checks it against the live site.
 
 ## Development

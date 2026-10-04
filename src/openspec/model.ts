@@ -22,6 +22,19 @@ export interface SourceRef {
   inDiff: boolean;
 }
 
+/**
+ * The lines a requirement's text occupies on the new side of a file in the PR.
+ * A review comment left on one of them belongs to that requirement.
+ */
+export interface SourceRange {
+  path: string;
+  /** 1-based, inclusive. */
+  start: number;
+  end: number;
+  /** Where each scenario's header is, so a line can be traced to its scenario. */
+  scenarios: Array<{ name: string; line: number }>;
+}
+
 export interface RequirementChange {
   /** Stable id: DOM anchor, deep link and review-progress key. */
   id: string;
@@ -34,6 +47,8 @@ export interface RequirementChange {
   reason: string | null;
   migration: string | null;
   source: SourceRef | null;
+  /** Empty when none of the requirement's text is on the new side of the diff. */
+  ranges: SourceRange[];
   problems: Problem[];
   /** The base spec already reflects this entry. */
   alreadySynced: boolean;
@@ -161,6 +176,17 @@ function firstLineIn(lines: Set<number>, start: number, length: number): number 
 }
 
 const lineCount = (raw: string) => raw.split('\n').length;
+
+/** The lines `requirement` occupies in `path`, with its scenarios' header lines. */
+const rangeOf = (path: string, requirement: Requirement): SourceRange => ({
+  path,
+  start: requirement.line,
+  end: requirement.line + lineCount(requirement.raw) - 1,
+  scenarios: requirement.scenarios.map((scenario) => ({
+    name: scenario.name,
+    line: requirement.line + scenario.offset,
+  })),
+});
 
 function uniqueId(base: string, taken: Set<string>): string {
   let id = base;
@@ -373,6 +399,28 @@ export function buildModel(plan: LoadPlan, blobs: ReadonlyMap<string, string>): 
       return { path: file.path, line: line ?? op.line, side: 'R', inDiff: line !== null };
     };
 
+    const rangesFor = (op: AppliedOperation, after: Requirement | null): SourceRange[] => {
+      if (historical) return [];
+      const ranges: SourceRange[] = [];
+      if (deltaInDiff) {
+        ranges.push(
+          after && after.line === op.line
+            ? rangeOf(file.path, after)
+            : {
+                path: file.path,
+                start: op.line,
+                end: op.line + (op.block ? lineCount(op.block.raw) : 1) - 1,
+                scenarios: [],
+              },
+        );
+      }
+      if (useMainSpec) {
+        const landed = headDoc(capability)?.requirements.find((r) => r.name === op.name);
+        if (landed) ranges.push(rangeOf(specFilePath, landed));
+      }
+      return ranges;
+    };
+
     for (const op of [...result.operations].sort((a, b) => a.line - b.line)) {
       if (merged.has(op)) continue;
       let previousName: string | null = null;
@@ -415,6 +463,7 @@ export function buildModel(plan: LoadPlan, blobs: ReadonlyMap<string, string>): 
         reason: note?.reason ?? null,
         migration: note?.migration ?? null,
         source: sourceFor(op, before),
+        ranges: rangesFor(op, after),
         problems,
         alreadySynced: op.alreadySynced,
       };
@@ -567,6 +616,7 @@ export function buildModel(plan: LoadPlan, blobs: ReadonlyMap<string, string>): 
           source: location
             ? { path: ref.path, line: hit ?? location.line, side, inDiff: hit !== null }
             : null,
+          ranges: entry.after ? [rangeOf(ref.path, entry.after)] : [],
           problems: entry.after ? requirementProblems(entry.after) : [],
           alreadySynced: false,
         };

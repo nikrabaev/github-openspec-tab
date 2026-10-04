@@ -1,0 +1,98 @@
+{
+  "viewer": "sam",
+  "threads": [
+    {
+      "path": "openspec/changes/bks-142-group-rides/proposal.md",
+      "line": 12,
+      "comments": [
+        {
+          "author": "ines",
+          "at": "2026-09-29T08:41:00Z",
+          "body": "Is the PIN removal announced to riders before this ships? Some stations still have the keypad sticker."
+        }
+      ]
+    },
+    {
+      "path": "openspec/changes/bks-142-group-rides/design.md",
+      "line": 31,
+      "comments": [
+        {
+          "author": "tomas",
+          "at": "2026-09-29T09:02:00Z",
+          "body": "Did we consider letting the leader pick the number of bikes first and release them together? Scanning four codes in the rain is slow."
+        },
+        {
+          "author": "mira",
+          "at": "2026-09-29T10:15:00Z",
+          "body": "We did. Docks release one bike per request, so the app would still wait for each one. Scanning also tells us *which* bikes, which we need for billing."
+        }
+      ]
+    },
+    {
+      "path": "openspec/changes/bks-142-group-rides/specs/ride-unlock/spec.md",
+      "line": 4,
+      "resolved": true,
+      "comments": [
+        {
+          "author": "ines",
+          "at": "2026-09-28T15:20:00Z",
+          "body": "\"MAY unlock up to 4 bikes\": should the limit be a setting per city?"
+        },
+        {
+          "author": "mira",
+          "at": "2026-09-28T16:05:00Z",
+          "body": "Fixed at 4 for now. A per-city limit is its own change."
+        }
+      ]
+    },
+    {
+      "path": "openspec/changes/bks-142-group-rides/specs/ride-unlock/spec.md",
+      "line": 8,
+      "comments": [
+        {
+          "author": "tomas",
+          "at": "2026-09-29T09:14:00Z",
+          "body": "Two seconds is tight for the older docks. Do we have numbers from stations on firmware 4.1?"
+        },
+        {
+          "author": "mira",
+          "at": "2026-09-29T11:30:00Z",
+          "body": "Median is 1.3 s on 4.2 and 1.6 s on 4.1, with a p95 of 1.9 s. I will link the dashboard from the design."
+        }
+      ]
+    },
+    {
+      "path": "openspec/changes/bks-142-group-rides/specs/ride-unlock/spec.md",
+      "line": 33,
+      "comments": [
+        {
+          "author": "ines",
+          "at": "2026-09-30T07:55:00Z",
+          "body": "Should the message also say how many bikes the group already has?"
+        }
+      ]
+    },
+    {
+      "path": "openspec/changes/bks-142-group-rides/specs/group-rides/spec.md",
+      "file": true,
+      "comments": [
+        {
+          "author": "ines",
+          "at": "2026-09-30T08:10:00Z",
+          "body": "Could \"leader\" get an entry in `docs/CONTEXT.md`? This spec leans on the word."
+        }
+      ]
+    },
+    {
+      "path": "openspec/changes/bks-142-group-rides/tasks.md",
+      "outdated": true,
+      "comments": [
+        {
+          "author": "tomas",
+          "at": "2026-09-27T13:00:00Z",
+          "body": "This task mixes the migration and the backfill. Split it?"
+        }
+      ]
+    }
+  ]
+}

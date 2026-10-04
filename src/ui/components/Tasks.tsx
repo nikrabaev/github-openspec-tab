@@ -3,6 +3,7 @@ import { CheckIcon, TasksIcon } from '../icons';
 import { InlineMarkdown, MarkdownProvider } from '../markdown/Markdown';
 import { useMarkdownOptions } from '../markdownOptions';
 import { ProgressBar, Section } from './common';
+import { BlockComment, BlockDiscussion } from './Discussion';
 
 /** tasks.md: progress overall and per group, and where work continues. */
 export function TasksSection({
@@ -26,6 +27,7 @@ export function TasksSection({
       title="Tasks"
       icon={<TasksIcon />}
       hash={doc.hash}
+      doc={{ path: doc.path, subject: 'Tasks' }}
       meta={
         <span className="muted">
           {tasks.done} of {tasks.total} done
@@ -49,6 +51,10 @@ export function TasksSection({
                         <span>
                           {group.title ? <InlineMarkdown source={group.title} /> : 'Other tasks'}
                         </span>
+                        <BlockComment
+                          line={group.line}
+                          subject={`Tasks: ${[group.number, group.title].filter(Boolean).join(' ')}`}
+                        />
                       </h4>
                       <span className="muted">
                         {group.done}/{group.total}
@@ -85,6 +91,7 @@ export function TasksSection({
                       );
                     })}
                   </ul>
+                  <BlockDiscussion line={group.line} />
                 </div>
               ))}
             </div>

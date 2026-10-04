@@ -13,6 +13,7 @@ import { BookIcon } from '../icons';
 import { InlineMarkdown, Markdown, MarkdownProvider } from '../markdown/Markdown';
 import { useMarkdownOptions } from '../markdownOptions';
 import { CountChips, DocRows, isCompact, layoutRows, proseWeight, Section } from './common';
+import { BlockDiscussion, BlockHead } from './Discussion';
 
 /**
  * The capabilities a proposal lists, one row each: the name as the spec section
@@ -107,7 +108,11 @@ export function ProposalSection({
     if (section.kind === 'capabilities') {
       return (
         <div key={key} className="block block-capabilities">
-          <h4>{section.title}</h4>
+          <BlockHead
+            title={section.title}
+            line={section.line}
+            subject={`Proposal: ${section.title}`}
+          />
           {listed > 0 && (
             <CapabilityList
               added={proposal.newCapabilities}
@@ -119,19 +124,31 @@ export function ProposalSection({
           {listed === 0 && !proposal.capabilitiesRest && (
             <p className="muted">No capabilities listed.</p>
           )}
+          <BlockDiscussion line={section.line} />
         </div>
       );
     }
     return (
       <div key={key} className={`block block-${section.kind}`}>
-        <h4>{section.title}</h4>
+        <BlockHead
+          title={section.title}
+          line={section.line}
+          subject={`Proposal: ${section.title}`}
+        />
         {section.body.trim() ? <Markdown source={section.body} /> : <p className="muted">Empty.</p>}
+        <BlockDiscussion line={section.line} />
       </div>
     );
   };
 
   return (
-    <Section id={doc.id} title="Proposal" icon={<BookIcon />} hash={doc.hash}>
+    <Section
+      id={doc.id}
+      title="Proposal"
+      icon={<BookIcon />}
+      hash={doc.hash}
+      doc={{ path: doc.path, subject: 'Proposal' }}
+    >
       <MarkdownProvider options={options}>
         {!proposal.structured ? (
           <div className="card fallback">

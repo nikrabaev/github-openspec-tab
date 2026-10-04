@@ -1,9 +1,11 @@
 import { type ReactNode, type RefObject, useEffect, useRef, useState } from 'react';
+import { regionKey } from '@/github/placement';
 import { deepLink } from '@/github/route';
 import type { Counts, Operation, Problem } from '@/openspec';
 import { usePull, useReview } from '../context';
 import { AlertIcon, CheckIcon, InfoIcon, LinkIcon, StopIcon, SyncIcon } from '../icons';
 import { InlineMarkdown, TermScope } from '../markdown/Markdown';
+import { CommentTrigger, Discussion, DocContext } from './Discussion';
 
 const OP_TEXT: Record<Operation, string> = {
   added: 'Added',
@@ -191,7 +193,11 @@ export function Section(props: {
   meta?: ReactNode;
   children: ReactNode;
   className?: string;
+  /** The file the section shows, when review comments can be left on it. */
+  doc?: { path: string; subject: string };
 }) {
+  const region = regionKey.doc(props.id);
+  const body = <TermScope>{props.children}</TermScope>;
   return (
     <section className={`section ${props.className ?? ''}`} data-item={props.id} data-nav="">
       <header className="section-head">
@@ -201,10 +207,24 @@ export function Section(props: {
         </h3>
         {props.meta}
         <span className="grow" />
+        {props.doc && (
+          <CommentTrigger
+            region={region}
+            target={{ path: props.doc.path, line: null, side: 'RIGHT', subject: props.doc.subject }}
+            label="Comment"
+          />
+        )}
         <CopyLink id={props.id} />
         {props.hash !== undefined && <ReadToggle id={props.id} hash={props.hash} />}
       </header>
-      <TermScope>{props.children}</TermScope>
+      {props.doc ? (
+        <DocContext.Provider value={{ id: props.id, path: props.doc.path }}>
+          <Discussion region={region} />
+          {body}
+        </DocContext.Provider>
+      ) : (
+        body
+      )}
     </section>
   );
 }

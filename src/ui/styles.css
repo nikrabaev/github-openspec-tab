@@ -1537,7 +1537,14 @@ li.blk-removed {
   min-width: 0;
 }
 
-.block > h4 {
+.block-head {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.block > h4,
+.block-head > h4 {
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.06em;
@@ -2362,6 +2369,301 @@ dialog::backdrop {
 
 .lightbox-stage .diagram-img {
   max-width: none;
+}
+
+/* ---------- Review comments ---------- */
+
+.discussion {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.req > .discussion {
+  padding: 0 16px 16px;
+}
+
+.thread {
+  min-width: 0;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.thread-archive > summary {
+  padding: 4px 8px;
+  font-size: 12px;
+  color: var(--fg-muted);
+  border-radius: var(--radius);
+}
+
+.thread-archive > summary:hover {
+  color: var(--fg);
+  background: var(--hover);
+}
+
+.thread-archive[open] > summary {
+  margin-bottom: 8px;
+}
+
+.thread-head {
+  min-height: 34px;
+  padding: 3px 6px 3px 10px;
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+
+div.thread-head {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.thread[open] > .thread-head,
+div.thread-head {
+  border-bottom: 1px solid var(--border-muted);
+}
+
+.thread-where {
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.thread-where a {
+  color: inherit;
+}
+
+.thread-comments {
+  display: flex;
+  flex-direction: column;
+  list-style: none;
+}
+
+.comment {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 10px;
+  padding: 10px 12px;
+}
+
+.comment + .comment {
+  border-top: 1px solid var(--border-muted);
+}
+
+.avatar {
+  width: 24px;
+  height: 24px;
+  background: var(--bg-neutral);
+  border-radius: 50%;
+}
+
+.avatar-initial {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--fg-muted);
+}
+
+.comment-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.comment-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+
+.comment-author {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg);
+}
+
+.comment-when {
+  color: inherit;
+}
+
+.thread-foot {
+  padding: 8px 12px 10px;
+}
+
+.thread-comments + .thread-foot,
+.thread > .composer-error + .thread-foot {
+  border-top: 1px solid var(--border-muted);
+}
+
+.thread > .composer-error {
+  margin: 0 12px 8px;
+}
+
+.reply-box {
+  width: 100%;
+  padding: 5px 10px;
+  color: var(--fg-muted);
+  text-align: start;
+  cursor: text;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.reply-box:hover {
+  border-color: var(--fg-muted);
+}
+
+.composer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.composer textarea,
+.review-form textarea {
+  width: 100%;
+  min-height: 84px;
+  padding: 8px 10px;
+  font: inherit;
+  line-height: 1.5;
+  color: var(--fg);
+  resize: vertical;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.composer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.composer-actions .button {
+  padding: 3px 12px;
+  font-size: 13px;
+}
+
+.button:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.composer-hint {
+  flex: 1;
+  min-width: 160px;
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+
+.composer-error {
+  padding: 6px 10px;
+  font-size: 13px;
+  color: var(--removed-fg);
+  background: var(--removed-bg);
+  border-radius: var(--radius);
+}
+
+.discussion-note {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 4px 4px 12px;
+  font-size: 13px;
+  background: var(--modified-bg);
+  border-radius: var(--radius);
+}
+
+/* The small comment buttons on headings and scenarios stay out of the way until wanted. */
+.comment-trigger:not(.has-label) {
+  flex: none;
+  min-width: 24px;
+  height: 22px;
+  opacity: 0;
+}
+
+:is(.block-head, summary, .decision > h5, .task-group-head, .callout-title):hover .comment-trigger,
+.comment-trigger:focus-visible {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .comment-trigger:not(.has-label) {
+    opacity: 1;
+  }
+}
+
+.outline-comments {
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--fg-muted);
+}
+
+.review-bar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 8px 8px 12px;
+  background: var(--bg-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.review-bar-text {
+  display: flex;
+  flex-direction: column;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.review-bar .button {
+  padding: 3px 10px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.review-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.verdicts {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 0;
+}
+
+.verdicts label {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.verdicts label > span {
+  display: flex;
+  flex-direction: column;
+}
+
+.verdicts input {
+  margin-top: 4px;
 }
 
 /* ---------- Wide windows ----------

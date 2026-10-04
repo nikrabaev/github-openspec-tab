@@ -1,7 +1,33 @@
 import { createContext, useContext } from 'react';
+import type { CommentMode, CommentsSnapshot, CommentTarget, ReviewEvent } from '@/github/comments';
 import type { LoadedPull } from '@/github/load';
 import type { Preferences, ReviewState } from '@/github/messages';
 import type { GlossaryIndex } from '@/openspec';
+
+/**
+ * Review comments, as the host provides them. Writes reject with an `Error`
+ * whose message can be shown to the reader; after a write the tab loads the
+ * threads again, so what it shows is always what GitHub holds.
+ */
+export interface CommentServices {
+  /** Shown until `load` answers: the dev harness and the tests have the threads at hand. */
+  initial?: CommentsSnapshot;
+  load(): Promise<CommentsSnapshot>;
+  addThread(
+    snapshot: CommentsSnapshot,
+    target: CommentTarget,
+    body: string,
+    mode: CommentMode,
+  ): Promise<{ movedToFile: boolean }>;
+  reply(
+    snapshot: CommentsSnapshot,
+    threadId: string,
+    body: string,
+    mode: CommentMode,
+  ): Promise<void>;
+  setResolved(threadId: string, resolved: boolean): Promise<void>;
+  submitReview(snapshot: CommentsSnapshot, event: ReviewEvent, body: string): Promise<void>;
+}
 
 /** What the tab needs from its host: the extension in production, stubs in the harness. */
 export interface Services {
@@ -14,6 +40,8 @@ export interface Services {
   navigate(target: string | null): void;
   /** Load the pull request again, e.g. after the token was added. */
   reload(): void;
+  /** Absent where review comments are not available. */
+  comments?: CommentServices;
 }
 
 export interface PullContextValue {

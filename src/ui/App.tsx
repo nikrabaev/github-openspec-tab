@@ -3,6 +3,7 @@ import type { LoadError, LoadedPull } from '@/github/load';
 import { DEFAULT_PREFERENCES, type Preferences, type ReviewState } from '@/github/messages';
 import { blobUrl, diffFileUrl, pullKey } from '@/github/route';
 import { buildGlossaryIndex } from '@/openspec';
+import { CommentsContext, useCommentsState } from './comments';
 import { CapabilitySection } from './components/Capability';
 import { Callout } from './components/common';
 import { DesignSection } from './components/Design';
@@ -108,6 +109,7 @@ function Ready({
     [review, services, key],
   );
 
+  const comments = useCommentsState(model, services.comments);
   const outline = useMemo(() => buildOutline(model), [model]);
   const visibleOutline = useMemo(() => filterOutline(outline, filter), [outline, filter]);
   const progress = useMemo(() => {
@@ -278,103 +280,114 @@ function Ready({
   return (
     <PullContext.Provider value={pullValue}>
       <ReviewContext.Provider value={reviewValue}>
-        <DiffViewContext.Provider value={prefs.diffView}>
-          <div className="layout" ref={root}>
-            <Outline
-              items={visibleOutline}
-              current={current}
-              filter={filter}
-              onFilter={setFilter}
-              filterRef={filterRef}
-              onSelect={goTo}
-              view={prefs.diffView}
-              onView={setView}
-              progress={progress}
-              onHelp={() => setHelp(true)}
-            />
-            <main className={`content view-${prefs.diffView}`}>
-              {data.warnings.map((warning) => (
-                <Callout key={warning} tone="attention" icon={<AlertIcon />} title="Incomplete">
-                  <p>{warning}</p>
-                </Callout>
-              ))}
+        <CommentsContext.Provider value={comments}>
+          <DiffViewContext.Provider value={prefs.diffView}>
+            <div className="layout" ref={root}>
+              <Outline
+                items={visibleOutline}
+                current={current}
+                filter={filter}
+                onFilter={setFilter}
+                filterRef={filterRef}
+                onSelect={goTo}
+                view={prefs.diffView}
+                onView={setView}
+                progress={progress}
+                onHelp={() => setHelp(true)}
+              />
+              <main className={`content view-${prefs.diffView}`}>
+                {data.warnings.map((warning) => (
+                  <Callout key={warning} tone="attention" icon={<AlertIcon />} title="Incomplete">
+                    <p>{warning}</p>
+                  </Callout>
+                ))}
+                {comments.status === 'error' && (
+                  <Callout
+                    tone="attention"
+                    icon={<AlertIcon />}
+                    title="Review comments are missing"
+                  >
+                    <p>{comments.loadError}</p>
+                  </Callout>
+                )}
 
-              {model.changes.map((change) => (
-                <article key={change.id} className="change" aria-label={change.label.label}>
-                  <OverviewCard change={change} />
-                  {change.proposal && <ProposalSection change={change} doc={change.proposal} />}
-                  {change.design && <DesignSection change={change} doc={change.design} />}
-                  {change.capabilities.map((capability) => (
-                    <SpecText
-                      key={capability.id}
-                      path={capability.deltaPath ?? capability.specPath}
-                    >
-                      <CapabilitySection view={capability} />
-                    </SpecText>
-                  ))}
-                  {change.tasks && (
-                    <TasksSection doc={change.tasks} doneAtBase={change.tasks.doneAtBase} />
-                  )}
-                  {change.otherFiles.length > 0 && (
-                    <p className="other-files muted">
-                      Also in this change:{' '}
-                      {change.otherFiles.map((file) => (
-                        <a
-                          key={file.path}
-                          className="chip chip-path"
-                          href={blobUrl(data.pull, data.facts.headSha, file.path)}
-                        >
-                          {file.rel}
-                        </a>
-                      ))}
-                    </p>
-                  )}
-                </article>
-              ))}
-
-              {model.directEdits.length > 0 && (
-                <article className="change" aria-label="Specs edited directly">
-                  <header className="overview overview-direct" data-item="specs" data-nav="">
-                    <div className="overview-top">
-                      <span className="pill pill-neutral">No change folder</span>
-                    </div>
-                    <h2>Specs edited directly</h2>
-                    <p className="lead">
-                      These specs differ from what the changes in this pull request account for.
-                      Each requirement is compared with the spec on the base branch.
-                    </p>
-                  </header>
-                  {model.directEdits.map((capability) => (
-                    <SpecText key={capability.id} path={capability.specPath}>
-                      <CapabilitySection view={capability} />
-                    </SpecText>
-                  ))}
-                </article>
-              )}
-
-              {model.otherFiles.length > 0 && (
-                <section className="section" data-item="files" data-nav="">
-                  <header className="section-head">
-                    <h3>Other OpenSpec files</h3>
-                  </header>
-                  <ul className="file-list">
-                    {model.otherFiles.map((file) => (
-                      <li key={file.path}>
-                        <span
-                          className={`tag tag-${file.status === 'modified' ? 'changed' : file.status}`}
-                        >
-                          {file.status}
-                        </span>
-                        <a href={diffFileUrl(data.pull, file.path)}>{file.path}</a>
-                      </li>
+                {model.changes.map((change) => (
+                  <article key={change.id} className="change" aria-label={change.label.label}>
+                    <OverviewCard change={change} />
+                    {change.proposal && <ProposalSection change={change} doc={change.proposal} />}
+                    {change.design && <DesignSection change={change} doc={change.design} />}
+                    {change.capabilities.map((capability) => (
+                      <SpecText
+                        key={capability.id}
+                        path={capability.deltaPath ?? capability.specPath}
+                      >
+                        <CapabilitySection view={capability} />
+                      </SpecText>
                     ))}
-                  </ul>
-                </section>
-              )}
-            </main>
-          </div>
-          {help && <HelpDialog onClose={() => setHelp(false)} />}
-        </DiffViewContext.Provider>
+                    {change.tasks && (
+                      <TasksSection doc={change.tasks} doneAtBase={change.tasks.doneAtBase} />
+                    )}
+                    {change.otherFiles.length > 0 && (
+                      <p className="other-files muted">
+                        Also in this change:{' '}
+                        {change.otherFiles.map((file) => (
+                          <a
+                            key={file.path}
+                            className="chip chip-path"
+                            href={blobUrl(data.pull, data.facts.headSha, file.path)}
+                          >
+                            {file.rel}
+                          </a>
+                        ))}
+                      </p>
+                    )}
+                  </article>
+                ))}
+
+                {model.directEdits.length > 0 && (
+                  <article className="change" aria-label="Specs edited directly">
+                    <header className="overview overview-direct" data-item="specs" data-nav="">
+                      <div className="overview-top">
+                        <span className="pill pill-neutral">No change folder</span>
+                      </div>
+                      <h2>Specs edited directly</h2>
+                      <p className="lead">
+                        These specs differ from what the changes in this pull request account for.
+                        Each requirement is compared with the spec on the base branch.
+                      </p>
+                    </header>
+                    {model.directEdits.map((capability) => (
+                      <SpecText key={capability.id} path={capability.specPath}>
+                        <CapabilitySection view={capability} />
+                      </SpecText>
+                    ))}
+                  </article>
+                )}
+
+                {model.otherFiles.length > 0 && (
+                  <section className="section" data-item="files" data-nav="">
+                    <header className="section-head">
+                      <h3>Other OpenSpec files</h3>
+                    </header>
+                    <ul className="file-list">
+                      {model.otherFiles.map((file) => (
+                        <li key={file.path}>
+                          <span
+                            className={`tag tag-${file.status === 'modified' ? 'changed' : file.status}`}
+                          >
+                            {file.status}
+                          </span>
+                          <a href={diffFileUrl(data.pull, file.path)}>{file.path}</a>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
+              </main>
+            </div>
+            {help && <HelpDialog onClose={() => setHelp(false)} />}
+          </DiffViewContext.Provider>
+        </CommentsContext.Provider>
       </ReviewContext.Provider>
     </PullContext.Provider>
   );
