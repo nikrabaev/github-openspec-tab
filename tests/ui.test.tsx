@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import type { LoadedPull } from '../src/github/load';
 import { parseGlossary } from '../src/openspec';
 import { App } from '../src/ui/App';
-import { isCompact, pairHalves } from '../src/ui/components/common';
+import { isCompact, layoutRows, pairHalves } from '../src/ui/components/common';
 import type { Services } from '../src/ui/context';
 import { Markdown, MarkdownProvider } from '../src/ui/markdown/Markdown';
 import { looksLikePath, resolveRepoPath } from '../src/ui/markdownOptions';
@@ -79,15 +79,44 @@ describe('App', () => {
     expect(html).toMatch(/pull\/128\/files#diff-[0-9a-f]{64}R\d+/);
   });
 
-  it('keeps long decisions, and statements with a table, at full width', () => {
+  it('gives long content room: no thin columns, and a table keeps the full width', () => {
     const long = render('longform');
     expect(long).toContain('class="decisions"');
+    // Long decisions sit two to a row at most; the one with a table is not one of them.
+    expect(long.match(/class="decision is-half"/g)).toHaveLength(2);
+    expect(long.match(/class="decision"/g)).toHaveLength(2);
     expect(long).toContain('class="req-body is-stacked"');
     expect(long).toContain('class="task-groups"');
     const short = render('showcase');
     expect(short).toContain('class="decisions is-compact"');
+    expect(short).not.toContain('is-half');
     expect(short).not.toContain('is-stacked');
     expect(short).toContain('class="task-groups is-compact"');
+  });
+
+  it('puts a proposal in two columns of about the same length', () => {
+    const html = render('longform');
+    const columns = html.split('class="doc-column"');
+    // Why and What Changes on the left, Capabilities and Impact on the right.
+    expect(columns[1]).toContain('block-why');
+    expect(columns[1]).toContain('block-what-changes');
+    expect(columns[2]).toContain('block-capabilities');
+    expect(columns[2]).toContain('block-impact');
+  });
+
+  it('leads each capability with its name, linked to its spec', () => {
+    const html = render('longform');
+    for (const name of [
+      'refund-review',
+      'payment-provider-refund-webhooks',
+      'ride-billing',
+      'rider-notifications',
+      'receipts',
+    ]) {
+      expect(html, name).toMatch(
+        new RegExp(`<li><button[^>]*class="chip chip-capability[^"]*"[^>]*>.*?${name}</button> `),
+      );
+    }
   });
 
   it('shows format problems inline and falls back to plain Markdown', () => {
@@ -189,7 +218,42 @@ describe('helpers', () => {
     expect(filterOutline(outline, 'zzz')).toEqual([]);
   });
 
-  it('pairs sections two to a row without leaving one alone in half a row', () => {
+  it('splits sections that can share a row into two balanced columns', () => {
+    const rows = layoutRows(
+      [
+        { name: 'why', size: 2, wide: false },
+        { name: 'what', size: 9, wide: false },
+        { name: 'capabilities', size: 6, wide: false },
+        { name: 'impact', size: 5, wide: false },
+        { name: 'table', size: 4, wide: true },
+        { name: 'alone', size: 3, wide: false },
+      ],
+      (item) => !item.wide,
+      (item) => item.size,
+    );
+    const names = rows.map((row) =>
+      'full' in row
+        ? row.full.name
+        : [row.left.map((item) => item.name), row.right.map((item) => item.name)],
+    );
+    expect(names).toEqual([
+      [
+        ['why', 'what'],
+        ['capabilities', 'impact'],
+      ],
+      'table',
+      'alone',
+    ]);
+    expect(
+      layoutRows(
+        [],
+        () => true,
+        () => 1,
+      ),
+    ).toEqual([]);
+  });
+
+  it('pairs cards two to a row without leaving one alone in half a row', () => {
     expect(pairHalves([true, true, true, true])).toEqual([true, true, true, true]);
     expect(pairHalves([true, true, true])).toEqual([true, true, false]);
     expect(pairHalves([true, false, true, true, false, true])).toEqual([

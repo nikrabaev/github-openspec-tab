@@ -165,10 +165,9 @@ export function Callout(props: {
   title: ReactNode;
   children: ReactNode;
   icon?: ReactNode;
-  className?: string;
 }) {
   return (
-    <div className={`callout callout-${props.tone}${props.className ? ` ${props.className}` : ''}`}>
+    <div className={`callout callout-${props.tone}`}>
       <div className="callout-title">
         {props.icon}
         {props.title}
@@ -180,10 +179,87 @@ export function Callout(props: {
 
 export { plural } from '@/openspec/text';
 
+/** One row of a document on a wide window: a section across it, or two columns of sections. */
+export type DocRow<T> = { full: T } | { left: T[]; right: T[] };
+
 /**
- * On a wide window, sections sit two to a row. Given which sections may share a
- * row, say which ones do: a section takes half the width only when the one after
- * it (or before it) can sit beside it, so nothing is left alone in half a row.
+ * Lays a document's sections out for a wide window. Sections that can share a
+ * row and follow one another are split into two columns of about the same
+ * length, read down the left and then down the right, so a short section beside
+ * a long one leaves no hole. A section that cannot share, or has no neighbour
+ * that can, takes the full width.
+ */
+export function layoutRows<T>(
+  items: readonly T[],
+  canShare: (item: T) => boolean,
+  weight: (item: T) => number,
+): DocRow<T>[] {
+  const rows: DocRow<T>[] = [];
+  let run: T[] = [];
+  const flush = () => {
+    const [only] = run;
+    if (run.length > 1) rows.push(splitRun(run, weight));
+    else if (only !== undefined) rows.push({ full: only });
+    run = [];
+  };
+  for (const item of items) {
+    if (canShare(item)) {
+      run.push(item);
+    } else {
+      flush();
+      rows.push({ full: item });
+    }
+  }
+  flush();
+  return rows;
+}
+
+/** A document's sections in the rows `layoutRows` gave them. `render` must key what it returns. */
+export function DocRows<T>(props: { rows: DocRow<T>[]; render: (item: T) => ReactNode }) {
+  return props.rows.map((row, index) =>
+    'full' in row ? (
+      props.render(row.full)
+    ) : (
+      <div key={`columns-${index}`} className="doc-columns">
+        <div className="doc-column">{row.left.map(props.render)}</div>
+        <div className="doc-column">{row.right.map(props.render)}</div>
+      </div>
+    ),
+  );
+}
+
+/** Cuts a run where the two sides come out closest in weight, keeping the order. */
+function splitRun<T>(run: T[], weight: (item: T) => number): DocRow<T> {
+  const weights = run.map(weight);
+  const total = weights.reduce((sum, value) => sum + value, 0);
+  let cut = 1;
+  let best = Number.POSITIVE_INFINITY;
+  let left = 0;
+  for (let i = 1; i < run.length; i++) {
+    left += weights[i - 1] ?? 0;
+    const difference = Math.abs(total - 2 * left);
+    if (difference < best) {
+      best = difference;
+      cut = i;
+    }
+  }
+  return { left: run.slice(0, cut), right: run.slice(cut) };
+}
+
+/**
+ * A rough measure of how tall a piece of Markdown is once rendered in a column:
+ * its length, plus an allowance for each paragraph or list item (a part-filled
+ * last line and the gap after it) and for the section heading.
+ */
+export function proseWeight(markdown: string): number {
+  const blocks = markdown.split('\n').filter((line) => line.trim() !== '').length;
+  return markdown.length + 90 * blocks + 160;
+}
+
+/**
+ * In a grid of two columns, says which items take half a row: an item does only
+ * when the one after it (or before it) can sit beside it, so none is left alone
+ * in half a row.
  */
 export function pairHalves(canShare: readonly boolean[]): boolean[] {
   const half = canShare.map(() => false);

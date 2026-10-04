@@ -55,6 +55,20 @@ Rules being rows rather than code means support can switch one off during an inc
 
 For a group ride the request names one bike's ride, and only that line of the receipt is refunded. The other lines are untouched, and the receipt total is shown again with the refund beside it.
 
+**Alternatives considered:**
+- Keep `amount` and reject a value above what was charged. Rejected: the client still has to know the right amount, and every old app version becomes a source of 400s.
+
+### Decision: The receipt reads the request, never the provider
+
+The receipt builder shows a refund from our own `refund_requests` row: its state, its amount and the time it last changed. It never asks the payment provider. A receipt is opened far more often than a refund changes, the provider's API is slow and rate limited, and a receipt that cannot be shown because a third party is down is a worse failure than one that is a minute behind.
+
+The price is that the receipt can lag: between the provider sending the money and its `refund.succeeded` event reaching us, the receipt still says "Refund being sent". That gap is seconds on a normal day. If the event has not arrived after an hour, a sweep asks the provider for that one refund by idempotency key and applies the answer as if the event had come, so a lost event cannot leave a receipt wrong for good.
+
+**With several instances:** the sweep runs on every instance, and two can pick the same request. Applying the provider's answer goes through the same handler as the event, under the same row lock, so the second one finds the request already `refunded` and stops.
+
+**Alternatives considered:**
+- Ask the provider when the receipt is opened and cache the answer. Rejected: the cache needs the same invalidation the events already give us, and adds a provider call to the most-opened screen in the app.
+
 ## Risks / Trade-offs
 
 - [Risk] A rider learns the two-minute rule and uses it for free short rides → Mitigation: `returned_quickly` applies at most three times a month per rider, and only when the bike returns to the dock it left, which is no use for getting anywhere.

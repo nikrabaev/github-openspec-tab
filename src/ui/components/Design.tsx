@@ -1,16 +1,71 @@
-import type { ChangeView, DesignDoc, DesignSection as DesignPart, DocView } from '@/openspec';
+import type {
+  ChangeView,
+  Decision,
+  DesignDoc,
+  DesignSection as DesignPart,
+  DocView,
+} from '@/openspec';
 import { ArrowIcon, CheckIcon, ChevronIcon, CloseIcon, PencilIcon, QuestionIcon } from '../icons';
 import { Markdown, MarkdownProvider } from '../markdown/Markdown';
 import { useMarkdownOptions } from '../markdownOptions';
-import { Callout, isCompact, pairHalves, plural, Section } from './common';
+import {
+  Callout,
+  DocRows,
+  isCompact,
+  layoutRows,
+  pairHalves,
+  plural,
+  proseWeight,
+  Section,
+} from './common';
 import { DiagramFigure } from './Diagram';
 
-function Part({ part, half }: { part: DesignPart; half: boolean }) {
-  const block = half ? 'block is-half' : 'block';
+/** Half a wide window is still a comfortable column for prose, however long it is. */
+const LONG = 20_000;
+
+/** A decision's text and its alternatives, as one piece of Markdown to measure. */
+const decisionText = (decision: Decision) => `${decision.body}\n${decision.alternatives ?? ''}`;
+
+/**
+ * Decisions as cards, the title above the text. On a wide window short ones sit
+ * several to a row and long ones two to a row; a decision with a table or code
+ * keeps the full width.
+ */
+function Decisions({ decisions }: { decisions: Decision[] }) {
+  const compact = decisions.every((decision) => isCompact(decisionText(decision), 480));
+  const halves = pairHalves(decisions.map((decision) => isCompact(decisionText(decision), LONG)));
+  return (
+    <ol className={compact ? 'decisions is-compact' : 'decisions'}>
+      {decisions.map((decision, index) => (
+        <li
+          key={decision.title}
+          className={!compact && halves[index] ? 'decision is-half' : 'decision'}
+        >
+          <h5>
+            <span className="decision-number">{index + 1}</span>
+            {decision.title}
+          </h5>
+          <Markdown source={decision.body} />
+          {decision.alternatives && (
+            <details className="fold">
+              <summary>
+                <ChevronIcon className="chev" />
+                Alternatives considered
+              </summary>
+              <Markdown source={decision.alternatives} />
+            </details>
+          )}
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+function Part({ part }: { part: DesignPart }) {
   switch (part.kind) {
     case 'goals':
       return (
-        <div className={block}>
+        <div className="block">
           <h4>{part.title}</h4>
           {part.intro && <Markdown source={part.intro} />}
           <div className="goals">
@@ -39,40 +94,15 @@ function Part({ part, half }: { part: DesignPart; half: boolean }) {
       );
     case 'decisions':
       return (
-        <div className={block}>
+        <div className="block">
           <h4>{part.title}</h4>
           {part.intro && <Markdown source={part.intro} />}
-          <ol
-            className={
-              part.decisions.every((d) => isCompact(`${d.body}\n${d.alternatives ?? ''}`, 480))
-                ? 'decisions is-compact'
-                : 'decisions'
-            }
-          >
-            {part.decisions.map((decision, index) => (
-              <li key={decision.title} className="decision">
-                <h5>
-                  <span className="decision-number">{index + 1}</span>
-                  {decision.title}
-                </h5>
-                <Markdown source={decision.body} />
-                {decision.alternatives && (
-                  <details className="fold">
-                    <summary>
-                      <ChevronIcon className="chev" />
-                      Alternatives considered
-                    </summary>
-                    <Markdown source={decision.alternatives} />
-                  </details>
-                )}
-              </li>
-            ))}
-          </ol>
+          <Decisions decisions={part.decisions} />
         </div>
       );
     case 'risks':
       return (
-        <div className={block}>
+        <div className="block">
           <h4>{part.title}</h4>
           {part.intro && <Markdown source={part.intro} />}
           <ul className="risks">
@@ -104,7 +134,7 @@ function Part({ part, half }: { part: DesignPart; half: boolean }) {
     case 'open-questions':
       if (part.count === 0) {
         return (
-          <div className={block}>
+          <div className="block">
             <h4>{part.title}</h4>
             <p className="muted">None.</p>
           </div>
@@ -112,7 +142,6 @@ function Part({ part, half }: { part: DesignPart; half: boolean }) {
       }
       return (
         <Callout
-          className={half ? 'is-half' : undefined}
           tone="attention"
           icon={<QuestionIcon />}
           title={`Needs your answer: ${plural(part.count, 'open question')}`}
@@ -122,16 +151,13 @@ function Part({ part, half }: { part: DesignPart; half: boolean }) {
       );
     default:
       return (
-        <div className={block}>
+        <div className="block">
           <h4>{part.title}</h4>
           {part.body.trim() ? <Markdown source={part.body} /> : <p className="muted">Empty.</p>}
         </div>
       );
   }
 }
-
-/** Half a wide window is still a comfortable column for prose, however long it is. */
-const LONG = 20_000;
 
 /**
  * Whether a section may sit beside another on a wide window. Decisions and
@@ -142,10 +168,21 @@ function sharesRow(part: DesignPart): boolean {
     case 'decisions':
     case 'risks':
       return false;
-    case 'goals':
-      return isCompact(`${part.intro}\n${part.goals}\n${part.nonGoals}`, LONG);
     default:
-      return isCompact(part.body, LONG);
+      return isCompact(partText(part), LONG);
+  }
+}
+
+/** The Markdown a section is made of, to measure it. */
+function partText(part: DesignPart): string {
+  switch (part.kind) {
+    case 'decisions':
+    case 'risks':
+      return part.intro;
+    case 'goals':
+      return `${part.intro}\n${part.goals}\n${part.nonGoals}`;
+    default:
+      return part.body;
   }
 }
 
@@ -153,7 +190,7 @@ function sharesRow(part: DesignPart): boolean {
 export function DesignSection({ change, doc }: { change: ChangeView; doc: DocView<DesignDoc> }) {
   const options = useMarkdownOptions(doc.path, { pathChips: true });
   const design = doc.doc;
-  const halves = pairHalves(design.sections.map(sharesRow));
+  const rows = layoutRows(design.sections, sharesRow, (part) => proseWeight(partText(part)));
 
   return (
     <Section
@@ -171,9 +208,10 @@ export function DesignSection({ change, doc }: { change: ChangeView; doc: DocVie
         <div className="doc">
           {design.preamble && <Markdown source={design.preamble} />}
           {design.sections.length === 0 && !design.preamble && <Markdown source={doc.raw} />}
-          {design.sections.map((part, index) => (
-            <Part key={`${part.line}:${part.title}`} part={part} half={halves[index] ?? false} />
-          ))}
+          <DocRows
+            rows={rows}
+            render={(part) => <Part key={`${part.line}:${part.title}`} part={part} />}
+          />
           {change.diagrams.length > 0 && (
             <div className="block">
               <h4>Diagrams</h4>

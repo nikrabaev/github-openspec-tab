@@ -1614,15 +1614,14 @@ button.chip:hover {
   list-style: none;
 }
 
+/* The name leads its description, so every line starts at the same edge however long the name is. */
 .cap-group li {
-  display: grid;
-  grid-template-columns: minmax(120px, max-content) minmax(0, 1fr);
-  gap: 12px;
-  align-items: baseline;
+  max-width: 76ch;
+  line-height: 1.7;
 }
 
-.cap-group li > :first-child {
-  justify-self: start;
+.cap-group .chip {
+  margin-inline-end: 4px;
 }
 
 .other-files {
@@ -2344,6 +2343,14 @@ dialog::backdrop {
   gap: 14px;
 }
 
+.doc-columns,
+.doc-column {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  min-width: 0;
+}
+
 .overview-main,
 .overview-side {
   display: flex;
@@ -2407,45 +2414,20 @@ dialog::backdrop {
     align-items: start;
   }
 
-  /* Proposal and design: sections in two columns, the large ones across both. */
-  .doc {
+  /* Proposal and design: runs of sections in two columns, the large ones across both. */
+  .doc-columns {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 24px 48px;
+    column-gap: 48px;
     align-items: start;
   }
 
-  .doc > * {
-    grid-column: 1 / -1;
-  }
-
-  .doc > .is-half {
-    grid-column: auto;
-  }
-
-  /* In half a row, goals sit above non-goals rather than in two thin cards. */
-  .is-half .goals {
+  /* In a column, goals sit above non-goals rather than in two thin cards. */
+  .doc-column .goals {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  /* A long decision: its title on the left, the text beside it. */
-  .decisions:not(.is-compact) .decision {
-    display: grid;
-    grid-template-columns: minmax(0, 3fr) minmax(0, 9fr);
-    gap: 8px 32px;
-    align-items: start;
-  }
-
-  .decisions:not(.is-compact) .decision > * {
-    grid-column: 2;
-  }
-
-  .decisions:not(.is-compact) .decision > h5 {
-    grid-row: 1 / span 3;
-    grid-column: 1;
-  }
-
-  /* Short decisions sit side by side; long ones stay one to a row. */
+  /* Short decisions sit side by side. */
   .decisions.is-compact {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(440px, 1fr));
@@ -2462,5 +2444,21 @@ dialog::backdrop {
 
   .task-groups.is-compact {
     grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  }
+}
+
+@container content (min-width: 1300px) {
+  /* Long decisions sit two to a row, each in a column wide enough for prose. */
+  .decisions:not(.is-compact) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .decisions:not(.is-compact) > .decision {
+    grid-column: 1 / -1;
+  }
+
+  .decisions:not(.is-compact) > .decision.is-half {
+    grid-column: auto;
   }
 }

@@ -1,10 +1,16 @@
 import { useMemo } from 'react';
-import type { CapabilityRef, ChangeView, DocView, ProposalDoc } from '@/openspec';
+import type {
+  CapabilityRef,
+  ChangeView,
+  DocView,
+  ProposalDoc,
+  ProposalSection as ProposalPart,
+} from '@/openspec';
 import { usePull } from '../context';
 import { BookIcon, SpecIcon } from '../icons';
 import { InlineMarkdown, Markdown, MarkdownProvider } from '../markdown/Markdown';
 import { useMarkdownOptions } from '../markdownOptions';
-import { isCompact, pairHalves, Section } from './common';
+import { DocRows, isCompact, layoutRows, proseWeight, Section } from './common';
 
 function CapabilityList(props: {
   title: string;
@@ -38,10 +44,8 @@ function CapabilityList(props: {
                 >
                   {ref.name}
                 </span>
-              )}
-              <span className="cap-desc">
-                <InlineMarkdown source={ref.description} />
-              </span>
+              )}{' '}
+              <InlineMarkdown source={ref.description} />
             </li>
           );
         })}
@@ -64,8 +68,44 @@ export function ProposalSection({
   );
   const options = useMarkdownOptions(doc.path, { capabilities: targets, pathChips: true });
   const proposal = doc.doc;
-  // Two sections to a row on a wide window, unless one holds a table or code and needs the room.
-  const halves = pairHalves(proposal.sections.map((section) => isCompact(section.body, 20_000)));
+  // On a wide window the sections fill two columns, unless one holds a table or code and needs the room.
+  const rows = layoutRows(
+    proposal.sections,
+    (section) => isCompact(section.body, 20_000),
+    (section) => proseWeight(section.body),
+  );
+
+  const renderSection = (section: ProposalPart) => {
+    const key = `${section.line}:${section.title}`;
+    if (section.kind === 'capabilities') {
+      return (
+        <div key={key} className="block block-capabilities">
+          <h4>{section.title}</h4>
+          <CapabilityList
+            title="New"
+            refs={proposal.newCapabilities}
+            targets={targets}
+            tone="added"
+          />
+          <CapabilityList
+            title="Modified"
+            refs={proposal.modifiedCapabilities}
+            targets={targets}
+            tone="modified"
+          />
+          {proposal.capabilitiesRest && <Markdown source={proposal.capabilitiesRest} />}
+          {proposal.newCapabilities.length + proposal.modifiedCapabilities.length === 0 &&
+            !proposal.capabilitiesRest && <p className="muted">No capabilities listed.</p>}
+        </div>
+      );
+    }
+    return (
+      <div key={key} className={`block block-${section.kind}`}>
+        <h4>{section.title}</h4>
+        {section.body.trim() ? <Markdown source={section.body} /> : <p className="muted">Empty.</p>}
+      </div>
+    );
+  };
 
   return (
     <Section id={doc.id} title="Proposal" icon={<BookIcon />} hash={doc.hash}>
@@ -77,44 +117,7 @@ export function ProposalSection({
         ) : (
           <div className="doc">
             {proposal.preamble && <Markdown source={proposal.preamble} />}
-            {proposal.sections.map((section, index) => {
-              const key = `${section.line}:${section.title}`;
-              const half = halves[index] ? ' is-half' : '';
-              if (section.kind === 'capabilities') {
-                return (
-                  <div key={key} className={`block block-capabilities${half}`}>
-                    <h4>{section.title}</h4>
-                    <CapabilityList
-                      title="New"
-                      refs={proposal.newCapabilities}
-                      targets={targets}
-                      tone="added"
-                    />
-                    <CapabilityList
-                      title="Modified"
-                      refs={proposal.modifiedCapabilities}
-                      targets={targets}
-                      tone="modified"
-                    />
-                    {proposal.capabilitiesRest && <Markdown source={proposal.capabilitiesRest} />}
-                    {proposal.newCapabilities.length + proposal.modifiedCapabilities.length === 0 &&
-                      !proposal.capabilitiesRest && (
-                        <p className="muted">No capabilities listed.</p>
-                      )}
-                  </div>
-                );
-              }
-              return (
-                <div key={key} className={`block block-${section.kind}${half}`}>
-                  <h4>{section.title}</h4>
-                  {section.body.trim() ? (
-                    <Markdown source={section.body} />
-                  ) : (
-                    <p className="muted">Empty.</p>
-                  )}
-                </div>
-              );
-            })}
+            <DocRows rows={rows} render={renderSection} />
           </div>
         )}
       </MarkdownProvider>

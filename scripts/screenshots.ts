@@ -139,8 +139,20 @@ const SHOTS: Shot[] = [
     wide: 1920,
     target: `${GROUP_RIDES}/spec/ride-unlock/unlock-by-qr-code`,
   },
+  { name: 'wide-long-proposal', fixture: 'longform', wide: 1920, target: `${LONG}/proposal` },
   { name: 'wide-long-design', fixture: 'longform', wide: 1920, target: `${LONG}/design` },
+  {
+    name: 'wide-long-decisions',
+    fixture: 'longform',
+    wide: 1920,
+    target: `${LONG}/design`,
+    async prepare(page) {
+      await page.getByRole('heading', { name: 'Decisions' }).scrollIntoViewIfNeeded();
+      await page.mouse.wheel(0, 640);
+    },
+  },
   { name: 'wide-long-tasks', fixture: 'longform', wide: 1920, target: `${LONG}/tasks` },
+  { name: 'long-proposal', fixture: 'longform', target: `${LONG}/proposal` },
   { name: 'long-design', fixture: 'longform', target: `${LONG}/design` },
   { name: 'empty', fixture: 'empty' },
   { name: 'loading', state: 'loading' },
