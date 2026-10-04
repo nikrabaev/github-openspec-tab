@@ -5,7 +5,7 @@ import type { Requirement, RequirementChange } from '@/openspec';
 import { useDiffView, usePull } from '../context';
 import { ArrowIcon, ChevronIcon, CommentIcon, ExternalIcon } from '../icons';
 import { Markdown, MarkdownDiff, TermScope, TermSide } from '../markdown/Markdown';
-import { Callout, CopyLink, OpLabel, ProblemList, plural, ReadToggle } from './common';
+import { Callout, CopyLink, isCompact, OpLabel, ProblemList, plural, ReadToggle } from './common';
 import { ScenarioDiffView, ScenarioSplitView, ScenarioView } from './Scenario';
 
 /** A requirement as written: its statement, then its scenarios. */
@@ -133,6 +133,8 @@ export function RequirementCard({
   const view = useDiffView();
   const { before, after } = change;
   const renamedAlso = change.op === 'modified' && change.previousName;
+  // Beside its scenarios only when the statement is short; a long one, or one with a table, gets the full width.
+  const stacked = ![before, after].every((r) => !r || isCompact(r.statement, 900));
 
   let body: React.ReactNode = null;
   if (change.op === 'modified' && before && after) {
@@ -199,7 +201,7 @@ export function RequirementCard({
         </div>
       </header>
       <ProblemList problems={change.problems} />
-      <div className="req-body">
+      <div className={stacked ? 'req-body is-stacked' : 'req-body'}>
         <TermScope key={`${view}:${change.hash}`}>{body}</TermScope>
       </div>
     </article>

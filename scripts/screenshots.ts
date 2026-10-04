@@ -13,12 +13,15 @@ const OUT = join(import.meta.dirname, '..', 'docs', 'screenshots');
 /** The few pictures the README shows, at double density. Committed. */
 const README = join(import.meta.dirname, '..', 'docs', 'readme');
 const GROUP_RIDES = 'c/bks-142-group-rides';
+const LONG = 'c/bks-150-refunds-from-receipts';
 
 interface Shot {
   name: string;
   fixture?: string;
   /** Hide the harness controls. */
   clean?: boolean;
+  /** Take the picture in a full-width window this many pixels wide. */
+  wide?: number;
   state?: string;
   view?: 'inline' | 'split' | 'new';
   /** Item the page is scrolled to. */
@@ -130,6 +133,15 @@ const SHOTS: Shot[] = [
   },
   { name: 'problems', fixture: 'problems', target: 'c/fix-unlock-timeouts/spec/ride-unlock' },
   { name: 'problems-fallback', fixture: 'problems', target: 'c/fix-unlock-timeouts/overview' },
+  { name: 'wide-overview', fixture: 'focus', clean: true, wide: 1920 },
+  {
+    name: 'wide-requirements',
+    wide: 1920,
+    target: `${GROUP_RIDES}/spec/ride-unlock/unlock-by-qr-code`,
+  },
+  { name: 'wide-long-design', fixture: 'longform', wide: 1920, target: `${LONG}/design` },
+  { name: 'wide-long-tasks', fixture: 'longform', wide: 1920, target: `${LONG}/tasks` },
+  { name: 'long-design', fixture: 'longform', target: `${LONG}/design` },
   { name: 'empty', fixture: 'empty' },
   { name: 'loading', state: 'loading' },
   { name: 'error-needs-token', state: 'error:needs-token' },
@@ -143,6 +155,10 @@ const THEMES = ['light', 'dark'] as const;
 async function capture(page: Page, base: string, shot: Shot, theme: string, file: string) {
   const query = new URLSearchParams({ fixture: shot.fixture ?? 'showcase', theme });
   if (shot.clean) query.set('clean', '1');
+  if (shot.wide) {
+    query.set('wide', '1');
+    await page.setViewportSize({ width: shot.wide, height: 1200 });
+  }
   if (shot.state) query.set('state', shot.state);
   if (shot.view) query.set('view', shot.view);
   await page.goto(`${base}/?${query}${shot.target ? `#openspec/${shot.target}` : '#openspec'}`);

@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import type { LoadedPull } from '../src/github/load';
 import { parseGlossary } from '../src/openspec';
 import { App } from '../src/ui/App';
-import { pairHalves } from '../src/ui/components/common';
+import { isCompact, pairHalves } from '../src/ui/components/common';
 import type { Services } from '../src/ui/context';
 import { Markdown, MarkdownProvider } from '../src/ui/markdown/Markdown';
 import { looksLikePath, resolveRepoPath } from '../src/ui/markdownOptions';
@@ -77,6 +77,17 @@ describe('App', () => {
     expect(html).toContain('class="term term-avoided"');
     // The comment link points at the changed line in Files changed.
     expect(html).toMatch(/pull\/128\/files#diff-[0-9a-f]{64}R\d+/);
+  });
+
+  it('keeps long decisions, and statements with a table, at full width', () => {
+    const long = render('longform');
+    expect(long).toContain('class="decisions"');
+    expect(long).toContain('class="req-body is-stacked"');
+    expect(long).toContain('class="task-groups"');
+    const short = render('showcase');
+    expect(short).toContain('class="decisions is-compact"');
+    expect(short).not.toContain('is-stacked');
+    expect(short).toContain('class="task-groups is-compact"');
   });
 
   it('shows format problems inline and falls back to plain Markdown', () => {
@@ -190,6 +201,13 @@ describe('helpers', () => {
       false,
     ]);
     expect(pairHalves([])).toEqual([]);
+  });
+
+  it('treats long prose, tables and code as needing the full width', () => {
+    expect(isCompact('A short paragraph.', 100)).toBe(true);
+    expect(isCompact('x'.repeat(101), 100)).toBe(false);
+    expect(isCompact('| a | b |\n| --- | --- |\n| 1 | 2 |', 1000)).toBe(false);
+    expect(isCompact('Text\n\n```ts\nconst a = 1;\n```', 1000)).toBe(false);
   });
 
   it('tells dark backgrounds from light ones', () => {

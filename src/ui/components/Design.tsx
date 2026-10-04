@@ -2,7 +2,7 @@ import type { ChangeView, DesignDoc, DesignSection as DesignPart, DocView } from
 import { ArrowIcon, CheckIcon, ChevronIcon, CloseIcon, PencilIcon, QuestionIcon } from '../icons';
 import { Markdown, MarkdownProvider } from '../markdown/Markdown';
 import { useMarkdownOptions } from '../markdownOptions';
-import { Callout, pairHalves, plural, Section } from './common';
+import { Callout, isCompact, pairHalves, plural, Section } from './common';
 import { DiagramFigure } from './Diagram';
 
 function Part({ part, half }: { part: DesignPart; half: boolean }) {
@@ -42,7 +42,13 @@ function Part({ part, half }: { part: DesignPart; half: boolean }) {
         <div className={block}>
           <h4>{part.title}</h4>
           {part.intro && <Markdown source={part.intro} />}
-          <ol className="decisions">
+          <ol
+            className={
+              part.decisions.every((d) => isCompact(`${d.body}\n${d.alternatives ?? ''}`, 480))
+                ? 'decisions is-compact'
+                : 'decisions'
+            }
+          >
             {part.decisions.map((decision, index) => (
               <li key={decision.title} className="decision">
                 <h5>
@@ -124,14 +130,31 @@ function Part({ part, half }: { part: DesignPart; half: boolean }) {
   }
 }
 
+/** Half a wide window is still a comfortable column for prose, however long it is. */
+const LONG = 20_000;
+
+/**
+ * Whether a section may sit beside another on a wide window. Decisions and
+ * risks always take the full width; so does anything holding a table or code.
+ */
+function sharesRow(part: DesignPart): boolean {
+  switch (part.kind) {
+    case 'decisions':
+    case 'risks':
+      return false;
+    case 'goals':
+      return isCompact(`${part.intro}\n${part.goals}\n${part.nonGoals}`, LONG);
+    default:
+      return isCompact(part.body, LONG);
+  }
+}
+
 /** design.md: goals beside non-goals, decisions as cards, risks against mitigations. */
 export function DesignSection({ change, doc }: { change: ChangeView; doc: DocView<DesignDoc> }) {
   const options = useMarkdownOptions(doc.path, { pathChips: true });
   const design = doc.doc;
-  // Decisions and risks need the full width; the rest can sit two to a row on a wide window.
-  const halves = pairHalves(
-    design.sections.map((part) => part.kind !== 'decisions' && part.kind !== 'risks'),
-  );
+  const halves = pairHalves(design.sections.map(sharesRow));
+
   return (
     <Section
       id={doc.id}

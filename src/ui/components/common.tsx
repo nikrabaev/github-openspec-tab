@@ -196,3 +196,13 @@ export function pairHalves(canShare: readonly boolean[]): boolean[] {
   }
   return half;
 }
+
+/**
+ * Whether a piece of Markdown is short enough for a narrow column. Long prose
+ * reads badly in one, and tables and code blocks need the room, so anything
+ * with either is never compact.
+ */
+export function isCompact(markdown: string, limit: number): boolean {
+  if (markdown.length > limit) return false;
+  return !/^\s*\|.*\|\s*$/m.test(markdown) && !/^\s*(?:```|~~~)/m.test(markdown);
+}

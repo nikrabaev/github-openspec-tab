@@ -1005,6 +1005,7 @@ button.flag:hover {
 
 .kw {
   padding: 1px 5px;
+  white-space: nowrap;
   font-size: 0.82em;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -2000,12 +2001,22 @@ button.chip:hover {
 .md table {
   font-size: 13px;
   border-collapse: collapse;
+  /* Words stay whole: a table that does not fit scrolls sideways instead of
+     squeezing its columns down to a letter each. */
+  overflow-wrap: break-word;
 }
 
 .md th,
 .md td {
+  min-width: 9ch;
   padding: 6px 12px;
+  vertical-align: top;
   border: 1px solid var(--border);
+}
+
+.md td code,
+.md th code {
+  white-space: nowrap;
 }
 
 .md th {
@@ -2355,37 +2366,37 @@ dialog::backdrop {
   }
 
   /* A requirement: its statement beside its scenarios. */
-  .req-body {
+  .req-body:not(.is-stacked) {
     display: grid;
     grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
     gap: 12px 32px;
     align-items: start;
   }
 
-  .req-body > * {
+  .req-body:not(.is-stacked) > * {
     grid-column: 1 / -1;
   }
 
-  .req-body > .statement {
+  .req-body:not(.is-stacked) > .statement {
     grid-row: 1 / span 2;
     grid-column: 1;
   }
 
-  .req-body > .statement:only-child {
+  .req-body:not(.is-stacked) > .statement:only-child {
     grid-column: 1 / -1;
   }
 
-  .req-body > .scenario-summary {
+  .req-body:not(.is-stacked) > .scenario-summary {
     grid-row: 1;
     grid-column: 2;
   }
 
-  .req-body > .scenarios {
+  .req-body:not(.is-stacked) > .scenarios {
     grid-column: 2;
   }
 
   /* A removal: reason beside migration, then the old statement beside its scenarios. */
-  .req-body > .callout {
+  .req-body:not(.is-stacked) > .callout {
     grid-column: auto;
   }
 
@@ -2412,17 +2423,44 @@ dialog::backdrop {
     grid-column: auto;
   }
 
-  .decisions {
+  /* In half a row, goals sit above non-goals rather than in two thin cards. */
+  .is-half .goals {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* A long decision: its title on the left, the text beside it. */
+  .decisions:not(.is-compact) .decision {
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(0, 9fr);
+    gap: 8px 32px;
+    align-items: start;
+  }
+
+  .decisions:not(.is-compact) .decision > * {
+    grid-column: 2;
+  }
+
+  .decisions:not(.is-compact) .decision > h5 {
+    grid-row: 1 / span 3;
+    grid-column: 1;
+  }
+
+  /* Short decisions sit side by side; long ones stay one to a row. */
+  .decisions.is-compact {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(440px, 1fr));
     align-items: start;
   }
 
-  /* Tasks: groups next to each other. */
+  /* Tasks: groups next to each other, in wider columns when the tasks are long. */
   .task-groups {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(620px, 1fr));
     gap: 20px 48px;
     align-items: start;
+  }
+
+  .task-groups.is-compact {
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
   }
 }

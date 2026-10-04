@@ -15,6 +15,11 @@ export function TasksSection({
   const options = useMarkdownOptions(doc.path, { pathChips: true });
   const tasks = doc.doc;
   const doneHere = doneAtBase === null ? 0 : tasks.done - doneAtBase;
+  const lengths = tasks.groups.flatMap((group) => group.tasks.map((task) => task.text.length));
+  const compact =
+    lengths.length > 0 &&
+    Math.max(...lengths) <= 120 &&
+    lengths.reduce((a, b) => a + b, 0) / lengths.length <= 64;
   return (
     <Section
       id={doc.id}
@@ -34,7 +39,7 @@ export function TasksSection({
         ) : (
           <div className="tasks">
             <ProgressBar done={tasks.done} total={tasks.total} label="Overall task progress" />
-            <div className="task-groups">
+            <div className={compact ? 'task-groups is-compact' : 'task-groups'}>
               {tasks.groups.map((group) => (
                 <div key={`${group.line}:${group.title}`} className="task-group">
                   {(group.title || tasks.groups.length > 1) && (

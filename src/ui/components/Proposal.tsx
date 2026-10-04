@@ -4,7 +4,7 @@ import { usePull } from '../context';
 import { BookIcon, SpecIcon } from '../icons';
 import { InlineMarkdown, Markdown, MarkdownProvider } from '../markdown/Markdown';
 import { useMarkdownOptions } from '../markdownOptions';
-import { pairHalves, Section } from './common';
+import { isCompact, pairHalves, Section } from './common';
 
 function CapabilityList(props: {
   title: string;
@@ -64,7 +64,8 @@ export function ProposalSection({
   );
   const options = useMarkdownOptions(doc.path, { capabilities: targets, pathChips: true });
   const proposal = doc.doc;
-  const halves = pairHalves(proposal.sections.map(() => true));
+  // Two sections to a row on a wide window, unless one holds a table or code and needs the room.
+  const halves = pairHalves(proposal.sections.map((section) => isCompact(section.body, 20_000)));
 
   return (
     <Section id={doc.id} title="Proposal" icon={<BookIcon />} hash={doc.hash}>

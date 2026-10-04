@@ -3,7 +3,7 @@ import type { CapabilityView } from '@/openspec';
 import { usePull } from '../context';
 import { ChevronIcon, SpecIcon } from '../icons';
 import { Markdown, TermScope } from '../markdown/Markdown';
-import { Callout, CopyLink, ProblemList, plural } from './common';
+import { Callout, CopyLink, isCompact, ProblemList, plural } from './common';
 import { RequirementBody, RequirementCard } from './Requirement';
 
 function CountChips({ view }: { view: CapabilityView }) {
@@ -77,7 +77,11 @@ export function CapabilitySection({ view }: { view: CapabilityView }) {
                 <header className="req-head">
                   <h4>{requirement.name}</h4>
                 </header>
-                <div className="req-body">
+                <div
+                  className={
+                    isCompact(requirement.statement, 900) ? 'req-body' : 'req-body is-stacked'
+                  }
+                >
                   <TermScope>
                     <RequirementBody requirement={requirement} scenariosOpen={false} />
                   </TermScope>
