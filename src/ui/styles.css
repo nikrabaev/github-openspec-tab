@@ -50,6 +50,8 @@
   --line-removed: var(--diffBlob-deletionLine-bgColor, #ffebe9);
 
   /* The host page can line the tab up with its own header by setting these on the host element. */
+  /* The height of a bar the page fixes to the top of the window: sticky headers stop below it. */
+  --page-top: var(--openspec-sticky-top, 0px);
   box-sizing: border-box;
   max-width: var(--openspec-max-width, 1280px);
   margin: 0 auto;
@@ -132,7 +134,7 @@ button {
 }
 
 [data-item] {
-  scroll-margin-top: 16px;
+  scroll-margin-top: calc(var(--page-top) + 16px);
 }
 
 [data-item]:focus {
@@ -234,11 +236,11 @@ kbd {
 
 .outline {
   position: sticky;
-  top: 12px;
+  top: calc(var(--page-top) + 12px);
   display: flex;
   flex-direction: column;
   gap: 12px;
-  max-height: calc(100vh - 24px);
+  max-height: calc(100vh - var(--page-top) - 24px);
   min-width: 0;
   font-size: 13px;
 }
@@ -695,11 +697,12 @@ button.flag:hover {
   min-width: 0;
 }
 
-/* Stays at the top of the window while its section is being read. The space above the
-   title is for when it is stuck; the negative margin keeps it where it was when it is not. */
+/* Stays at the top of the window, below the page's fixed header, while its section is being
+   read. The space above the title is for when it is stuck; the negative margin keeps it where
+   it was when it is not. */
 .section-head {
   position: sticky;
-  top: 0;
+  top: var(--page-top);
   z-index: 3;
   display: flex;
   flex-wrap: wrap;
@@ -916,7 +919,7 @@ button.flag:hover {
    and its actions in view. */
 .req-head {
   position: sticky;
-  top: var(--section-head-height, 48px);
+  top: calc(var(--page-top) + var(--section-head-height, 48px));
   z-index: 2;
   display: flex;
   flex-wrap: wrap;
@@ -941,7 +944,7 @@ button.flag:hover {
 
 /* A jump to a requirement stops below the section header, not under it. */
 .req[data-item] {
-  scroll-margin-top: calc(var(--section-head-height, 48px) + 12px);
+  scroll-margin-top: calc(var(--page-top) + var(--section-head-height, 48px) + 12px);
 }
 
 .req-head h4 {

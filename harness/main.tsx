@@ -58,6 +58,15 @@ if (showcase) {
 }
 
 const pull = { owner: 'pedalway', repo: 'pedalway', number: 128 };
+const TITLE = 'Group rides: unlock and bill several bikes together';
+const SUMMARY = (
+  <span>
+    <strong>mira</strong> wants to merge 9 commits into <code>main</code> from{' '}
+    <code>bks-142-group-rides</code>
+  </span>
+);
+/** How tall GitHub's fixed pull request header is. */
+const FIXED_HEADER = 60;
 
 function loadFixture(name: string): LoadedPull {
   const files = fixtures.get(name) ?? { base: {}, head: {} };
@@ -232,14 +241,11 @@ function Harness() {
       </div>
       <div className="shell-pr">
         <h1>
-          Group rides: unlock and bill several bikes together <span>#{pull.number}</span>
+          {TITLE} <span>#{pull.number}</span>
         </h1>
         <div className="shell-meta">
           <span className="shell-state">Open</span>
-          <span>
-            <strong>mira</strong> wants to merge 9 commits into <code>main</code> from{' '}
-            <code>bks-142-group-rides</code>
-          </span>
+          {SUMMARY}
         </div>
         <nav className="shell-tabs" aria-label="Pull request tabs">
           <span className="shell-tab">
@@ -256,6 +262,7 @@ function Harness() {
             OpenSpec {count !== null && <span className="shell-counter">{count}</span>}
           </span>
         </nav>
+        <FixedHeader />
       </div>
       <ShadowMount>
         <App
@@ -265,6 +272,39 @@ function Harness() {
           services={services}
         />
       </ShadowMount>
+    </>
+  );
+}
+
+/**
+ * A stand-in for the compact pull request header GitHub fixes to the top of the window once
+ * the tab bar has scrolled out of sight. The tab is told its height and keeps clear of it.
+ */
+function FixedHeader() {
+  const [marker, setMarker] = useState<HTMLDivElement | null>(null);
+  const [stuck, setStuck] = useState(false);
+  useEffect(() => {
+    if (!marker) return;
+    const observer = new IntersectionObserver(([entry]) =>
+      setStuck(Boolean(entry && !entry.isIntersecting && entry.boundingClientRect.top < 0)),
+    );
+    observer.observe(marker);
+    return () => observer.disconnect();
+  }, [marker]);
+  return (
+    <>
+      <div ref={setMarker} />
+      <div className="shell-fixed" style={{ height: FIXED_HEADER }} hidden={!stuck}>
+        <div className="shell-fixed-content">
+          <span className="shell-state">Open</span>
+          <div>
+            <div className="shell-fixed-title">
+              <strong>{TITLE}</strong> <span>#{pull.number}</span>
+            </div>
+            {SUMMARY}
+          </div>
+        </div>
+      </div>
     </>
   );
 }
@@ -295,7 +335,12 @@ function ShadowMount({ children }: { children: React.ReactNode }) {
     <div
       id="openspec-tab-host"
       ref={setHost}
-      style={wide ? ({ '--openspec-max-width': 'none' } as React.CSSProperties) : undefined}
+      style={
+        {
+          '--openspec-sticky-top': `${FIXED_HEADER}px`,
+          ...(wide ? { '--openspec-max-width': 'none' } : {}),
+        } as React.CSSProperties
+      }
     />
   );
 }

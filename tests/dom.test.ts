@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
+  alignWithHeader,
   ensureTab,
   findBoundary,
   findTabNav,
@@ -14,7 +15,8 @@ import {
 /**
  * Markup written for these tests, shaped like GitHub's two pull request tab
  * bars: the React one (hashed class names, `aria-current`, an id on the Files
- * tab) and the classic one (`.tabnav-tab.selected`, `.Counter`).
+ * tab, the fixed header and its marker after the tab bar) and the classic one
+ * (`.tabnav-tab.selected`, `.Counter`).
  */
 const REACT_PAGE = `
 <main><turbo-frame id="repo-content-turbo-frame"><div id="app" style="min-height: 800px">
@@ -25,8 +27,9 @@ const REACT_PAGE = `
       <a class="Link_x3" href="/o/r/pull/7/checks"><svg class="octicon octicon-checklist"><path d="M0 0"></path></svg>Checks</a>
       <a class="Link_x3" href="/o/r/pull/7/files" id="prs-files-anchor-tab" data-discover="true"><svg class="octicon octicon-file-diff"><path d="M0 0"></path></svg>Files changed</a>
     </div></nav>
+    <div class="PageHeader_x7 StickyPullRequestHeader-module__prHeader__x8" style="display: none; height: 60px">Open, the title</div>
+    <div class="StickyPullRequestHeader-module__stickyHeaderActivationThreshold__x9"></div>
   </header>
-  <div class="sticky-header">sticky</div>
   <div class="content">native content</div>
 </div></turbo-frame></main>`;
 
@@ -143,7 +146,8 @@ describe('tab injection: React tab bar', () => {
     boundary.append(host);
     hideNativeContent(nav, boundary, host);
     const hidden = [...document.querySelectorAll('[data-openspec-hidden]')].map((e) => e.className);
-    expect(hidden).toEqual(['sticky-header', 'content']);
+    // GitHub's fixed header and the marker it watches follow the tab bar too, and stay.
+    expect(hidden).toEqual(['content']);
     expect(host.hasAttribute('data-openspec-hidden')).toBe(false);
     expect(document.querySelector('#app')?.hasAttribute('data-openspec-compact')).toBe(true);
     expect(nav.closest('header')?.hasAttribute('data-openspec-hidden')).toBe(false);
@@ -154,6 +158,17 @@ describe('tab injection: React tab bar', () => {
     ).toHaveLength(0);
     removeTab();
     expect(nav.querySelector('a[data-openspec-tab]')).toBeNull();
+  });
+
+  it("leaves room for GitHub's fixed header before it shows, and none when it is hidden", () => {
+    const host = document.createElement('openspec-tab');
+    findBoundary(nav).append(host);
+    alignWithHeader(host);
+    expect(host.style.getPropertyValue('--openspec-sticky-top')).toBe('60px');
+
+    document.querySelector('header')?.setAttribute('data-openspec-hidden', '');
+    alignWithHeader(host);
+    expect(host.style.getPropertyValue('--openspec-sticky-top')).toBe('0px');
   });
 });
 
@@ -175,5 +190,13 @@ describe('tab injection: classic tab bar', () => {
     expect(nav.querySelectorAll('.selected')).toHaveLength(1);
     setTabSelected(nav, tab, false);
     expect(nav.querySelector('.selected')?.textContent).toContain('Files changed');
+  });
+
+  it('leaves no room at the top on a page without the fixed header', () => {
+    setup(CLASSIC_PAGE, 'https://github.com/o/r/pull/7/files');
+    const host = document.createElement('openspec-tab');
+    document.body.append(host);
+    alignWithHeader(host);
+    expect(host.style.getPropertyValue('--openspec-sticky-top')).toBe('0px');
   });
 });

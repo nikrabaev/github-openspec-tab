@@ -91,12 +91,19 @@ try {
   if (await firstCard.count()) {
     await firstCard.scrollIntoViewIfNeeded();
     await page.screenshot({ path: join(out, '3-requirements.png') });
-    // Scroll into the card: its section's header and its own header must stay in view,
-    // which GitHub's page could prevent (a clipping ancestor, a sticky bar of its own).
+    // Scroll into the card: GitHub fixes its own pull request header to the top of the
+    // window, and the section's header and the card's own must stay in view below it, which
+    // GitHub's page could prevent (a clipping ancestor, its header painted over ours).
     await firstCard.evaluate((card) => {
       window.scrollTo({ top: window.scrollY + card.getBoundingClientRect().top - 20 });
     });
     await page.waitForTimeout(300);
+    const fixed = await page.evaluate(() => {
+      const header = document.querySelector('[class*="StickyPullRequestHeader-module__prHeader"]');
+      const rect = header?.getBoundingClientRect();
+      return rect && rect.top === 0 ? Math.round(rect.bottom) : 0;
+    });
+    check(`GitHub's pull request header stays at the top of the window (${fixed}px)`, fixed > 0);
     // Where a header sits, and "covered" when something of GitHub's is painted over it.
     // (Kept free of inner functions: tsx wraps those in a helper the page does not have.)
     const place = (selector: string) =>
@@ -112,10 +119,27 @@ try {
       }, selector);
     const heads = { section: await place('.section-head'), head: await place('.req-head') };
     check(
-      `headers stay in view while scrolling (section at ${heads.section}, requirement at ${heads.head})`,
-      heads.section === '0' && /^\d+$/.test(heads.head) && Number(heads.head) > 0,
+      `headers stay in view below it while scrolling (section at ${heads.section}, requirement at ${heads.head})`,
+      heads.section === String(fixed) && /^\d+$/.test(heads.head) && Number(heads.head) > fixed,
     );
     await page.screenshot({ path: join(out, '3b-sticky-headers.png') });
+    // The title in GitHub's header links to "#top", which must not replace the tab's hash.
+    await page
+      .locator('[class*="StickyPullRequestHeader-module__prHeader"] a[href="#top"]')
+      .click();
+    // GitHub scrolls smoothly, so the top is reached a moment later.
+    const atTop = await page
+      .waitForFunction(() => window.scrollY === 0, undefined, { timeout: 5000 })
+      .then(
+        () => true,
+        () => false,
+      );
+    check(
+      'the title in the header goes to the top and stays in the tab',
+      atTop &&
+        page.url().includes('#openspec') &&
+        (await page.locator('openspec-tab').count()) === 1,
+    );
     const comment = page.locator('openspec-tab .req a.icon-button.has-label').first();
     check(
       `requirement links to its source (${(await comment.getAttribute('href'))?.split('#')[1]?.slice(0, 16)}…)`,
