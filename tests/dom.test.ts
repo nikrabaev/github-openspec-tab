@@ -6,20 +6,23 @@ import {
   findBoundary,
   findTabNav,
   hideNativeContent,
+  isTabBarReady,
   removeTab,
   setTabCount,
   setTabSelected,
   showNativeContent,
 } from '../src/github/dom';
+import { answerMountedQueries } from '../src/github/react';
+import { mount } from './helpers/fibers';
 
 /**
  * Markup written for these tests, shaped like GitHub's two pull request tab
- * bars: the React one (hashed class names, `aria-current`, an id on the Files
- * tab, the fixed header and its marker after the tab bar) and the classic one
- * (`.tabnav-tab.selected`, `.Counter`).
+ * bars: the React one (inside a `react-app`, hashed class names, `aria-current`,
+ * an id on the Files tab, the fixed header and its marker after the tab bar) and
+ * the classic one (`.tabnav-tab.selected`, `.Counter`).
  */
 const REACT_PAGE = `
-<main><turbo-frame id="repo-content-turbo-frame"><div id="app" style="min-height: 800px">
+<main><turbo-frame id="repo-content-turbo-frame"><react-app app-name="pull-requests"><div id="app" style="min-height: 800px">
   <header>
     <nav class="TabNav_x1" aria-label="Pull request navigation" data-turbo="false"><div class="List_x2">
       <a class="Link_x3 selected_x4" aria-current="page" href="/o/r/pull/7"><svg class="octicon octicon-comment-discussion"><path d="M0 0"></path></svg>Conversation</a>
@@ -31,7 +34,7 @@ const REACT_PAGE = `
     <div class="StickyPullRequestHeader-module__stickyHeaderActivationThreshold__x9"></div>
   </header>
   <div class="content">native content</div>
-</div></turbo-frame></main>`;
+</div></react-app></turbo-frame></main>`;
 
 const CLASSIC_PAGE = `
 <main><turbo-frame id="repo-content-turbo-frame"><div id="bucket">
@@ -84,6 +87,13 @@ describe('tab injection: React tab bar', () => {
     expect(tab?.hasAttribute('aria-current')).toBe(false);
     expect(tab?.querySelector('svg')?.getAttribute('class')).toBe('octicon');
     expect(document.querySelectorAll('#prs-files-anchor-tab')).toHaveLength(1);
+  });
+
+  it('is ready for the tab only once React has mounted the tab bar', () => {
+    answerMountedQueries();
+    expect(isTabBarReady(nav)).toBe(false);
+    mount(nav.querySelector('.List_x2') as HTMLElement);
+    expect(isTabBarReady(nav)).toBe(true);
   });
 
   it('is idempotent and keeps the link current', () => {
@@ -173,6 +183,11 @@ describe('tab injection: React tab bar', () => {
 });
 
 describe('tab injection: classic tab bar', () => {
+  it('is ready for the tab at once: there is no React to wait for', () => {
+    const nav = setup(CLASSIC_PAGE, 'https://github.com/o/r/pull/7/files');
+    expect(isTabBarReady(nav)).toBe(true);
+  });
+
   it('clones the Files changed tab without its selected state, id or count', () => {
     const nav = setup(CLASSIC_PAGE, 'https://github.com/o/r/pull/7/files');
     const tab = ensureTab(nav, '/o/r/pull/7/files#openspec', noop) as HTMLElement;

@@ -13,8 +13,10 @@ import {
   ensurePageStyle,
   ensureTab,
   findBoundary,
+  findTab,
   findTabNav,
   hideNativeContent,
+  isTabBarReady,
   removeTab,
   setTabCount,
   setTabSelected,
@@ -35,6 +37,8 @@ import type { Services } from '@/ui/context';
 
 const ROOT = 'openspec';
 const REFRESH_AFTER = 60_000;
+const RECHECK_EVERY = 100;
+const GIVE_UP_AFTER = 10_000;
 
 /**
  * Not loaded yet, or assumed empty because the repository has no `openspec/`
@@ -54,6 +58,8 @@ class Controller {
   private frame = 0;
   private observer = new MutationObserver(() => this.schedule());
   private observing = false;
+  private recheck = 0;
+  private waitingSince = new WeakMap<HTMLElement, number>();
 
   constructor(private readonly ctx: ContentScriptContext) {}
 
@@ -124,14 +130,13 @@ class Controller {
     const nav = findTabNav();
     if (!nav) return;
     ensurePageStyle();
-    const tab = ensureTab(
-      nav,
-      `${location.pathname}${location.search}${HASH_PREFIX}`,
-      this.onTabClick,
-    );
-    if (!tab) return;
-    this.updateCount(tab);
+    const tab =
+      findTab(nav) || this.canAddTab(nav)
+        ? ensureTab(nav, `${location.pathname}${location.search}${HASH_PREFIX}`, this.onTabClick)
+        : null;
+    if (tab) this.updateCount(tab);
 
+    // The view itself does not wait for the tab: it sits outside GitHub's React.
     const route = parseHash(location.hash);
     if (route.active) {
       this.target = route.target;
@@ -139,6 +144,31 @@ class Controller {
     } else {
       this.deactivate(nav, tab);
     }
+  }
+
+  /**
+   * Whether the tab can go into the tab bar yet. On a React page that is once
+   * React has mounted the tab bar, which the page script answers (see
+   * `react.ts`). Nothing on the page changes at that moment, so until then
+   * this asks again every little while.
+   *
+   * If the answer never comes (the page script is not running, or React's
+   * internals changed), the tab is added anyway once the page has been loaded
+   * for a while: a tab that costs GitHub a second render beats no tab.
+   */
+  private canAddTab(nav: HTMLElement): boolean {
+    if (isTabBarReady(nav)) return true;
+    if (document.readyState === 'complete') {
+      const since = this.waitingSince.get(nav) ?? Date.now();
+      this.waitingSince.set(nav, since);
+      if (Date.now() - since > GIVE_UP_AFTER) return true;
+    }
+    this.recheck ||= this.ctx.setTimeout(() => {
+      this.recheck = 0;
+      const current = findTabNav();
+      if (current && !findTab(current) && this.canAddTab(current)) this.schedule();
+    }, RECHECK_EVERY);
+    return false;
   }
 
   private onTabClick = (event: MouseEvent): void => {
@@ -186,9 +216,9 @@ class Controller {
     }
   }
 
-  private activate(nav: HTMLElement, tab: HTMLElement): void {
+  private activate(nav: HTMLElement, tab: HTMLElement | null): void {
     const boundary = findBoundary(nav);
-    setTabSelected(nav, tab, true);
+    if (tab) setTabSelected(nav, tab, true);
     hideNativeContent(nav, boundary, this.ui?.shadowHost ?? null);
     document.documentElement.dataset.openspecActive = '';
 
@@ -254,16 +284,14 @@ class Controller {
     if (!this.target && window.scrollY > top) window.scrollTo({ top: Math.max(0, top) });
   }
 
-  private deactivate(nav: HTMLElement, tab: HTMLElement): void {
-    if (!this.ui && !document.documentElement.hasAttribute('data-openspec-active')) {
-      setTabSelected(nav, tab, false);
-      return;
+  private deactivate(nav: HTMLElement, tab: HTMLElement | null): void {
+    if (this.ui || document.documentElement.hasAttribute('data-openspec-active')) {
+      delete document.documentElement.dataset.openspecActive;
+      this.ui?.remove();
+      this.ui = null;
+      showNativeContent();
     }
-    delete document.documentElement.dataset.openspecActive;
-    this.ui?.remove();
-    this.ui = null;
-    showNativeContent();
-    setTabSelected(nav, tab, false);
+    if (tab) setTabSelected(nav, tab, false);
   }
 
   private teardown(removeEverything: boolean): void {
@@ -286,7 +314,8 @@ class Controller {
 
   private setPhase(phase: Phase): void {
     this.phase = phase;
-    const tab = findTabNav()?.querySelector<HTMLElement>('a[data-openspec-tab]');
+    const nav = findTabNav();
+    const tab = nav && findTab(nav);
     if (tab) this.updateCount(tab);
     this.render();
   }
