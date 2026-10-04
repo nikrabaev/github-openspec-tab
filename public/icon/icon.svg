@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
-  <title>OpenSpec Tab</title>
-  <rect width="128" height="128" rx="28" fill="#1f2328"/>
-  <rect x="30" y="22" width="68" height="84" rx="10" fill="none" stroke="#ffffff" stroke-width="8"/>
-  <path d="M46 46h36M46 64h36" stroke="#ffffff" stroke-width="8" stroke-linecap="round"/>
-  <path d="M46 83l8 8 16-17" fill="none" stroke="#3fb950" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>

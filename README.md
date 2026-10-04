@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="public/icon/128.png" width="88" height="88" alt="">
+<img src="assets/logo.png" width="104" height="104" alt="OpenSpec Tab logo">
 
 # OpenSpec Tab for GitHub
 
