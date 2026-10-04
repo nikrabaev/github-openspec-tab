@@ -11,5 +11,7 @@ export default defineConfig({
     // api.github.com: pull request facts and the openspec/ tree, with an optional read-only token.
     host_permissions: ['https://github.com/*', 'https://api.github.com/*'],
     permissions: ['storage'],
+    // The fonts the reader can choose in the tab, read by the content script (see src/ui/fonts.ts).
+    web_accessible_resources: [{ resources: ['fonts/*.woff2'], matches: ['https://github.com/*'] }],
   },
 });

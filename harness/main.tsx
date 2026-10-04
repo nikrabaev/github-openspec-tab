@@ -186,6 +186,7 @@ function Harness() {
       }),
       savePreferences: async (prefs) =>
         localStorage.setItem('harness:prefs', JSON.stringify(prefs)),
+      fontUrl: (file) => `/fonts/${file}`,
       openOptions: () => alert('In the extension this opens the settings page.'),
       navigate: (target) => {
         history.replaceState(history.state, '', hashFor(target));

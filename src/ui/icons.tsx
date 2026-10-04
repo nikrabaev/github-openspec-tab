@@ -57,6 +57,8 @@ export const StopIcon = icon(
   </>,
 );
 export const CloseIcon = icon(<path d="M4 4l8 8M12 4l-8 8" />);
+export const PlusIcon = icon(<path d="M8 3.5v9M3.5 8h9" />);
+export const MinusIcon = icon(<path d="M3.5 8h9" />);
 export const SearchIcon = icon(
   <>
     <circle cx="7" cy="7" r="4.5" />

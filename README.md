@@ -64,10 +64,12 @@ This tab reads the same files and shows them the way a reviewer thinks about the
 - **Diagrams:** `*.excalidraw.svg` files in the change folder are shown inline, with zoom.
 - **Tasks:** progress overall and per group, with the next unchecked task highlighted.
 - **Review comments, in place:** the pull request's review threads appear on the requirement, scenario, decision or section they were left on, and the outline counts the ones still open. With a token you can comment, reply and resolve from the tab, publish a comment at once or keep it in a pending review, and submit the review with a verdict.
-- **Review progress:** "Mark as read" on each section and requirement, remembered per pull request. If the author pushes a change to something you marked, it is flagged as changed since you read it.
+- **Review progress:** "Mark as read" on each section and requirement, remembered per pull request, with a count of what you have read in the toolbar. If the author pushes a change to something you marked, it is flagged as changed since you read it.
 - **Glossary on hover:** if the repository has `docs/CONTEXT.md` (or `CONTEXT.md`), its terms are underlined and show their definition. Words the glossary says to avoid are underlined differently.
 - **Format problems, inline:** a requirement with no scenario, a `MODIFIED` requirement that matches nothing in the base spec, a `FROM:` without a `TO:`. A file that cannot be read as OpenSpec is shown as plain rendered Markdown.
 - **A sticky outline** with a filter and keyboard navigation. Drag its edge to make it wider or narrower; the width is remembered, and a double click puts it back.
+- **A toolbar, as on "Files changed":** how changes are shown, the read count, the review in progress and the reading settings sit in a row at the top of the tab, and move into the pull request header once you scroll.
+- **Reading settings:** the font, size and weight of the text you read, and how wide the column of text may get, remembered across pull requests. Lexend and Atkinson Hyperlegible Next ship with the extension, so they work whether or not they are installed; a serif and any font on your computer can be chosen too.
 - **Headers that stay in view:** a compact pull request header (state, title, branches) stays at the top of the window, like the one on GitHub's own tabs, whichever page you open the tab from. Below it, the header of the section you are in and of the requirement you are reading stick while you scroll, with "Comment" and "Mark as read" in reach.
 - **GitHub's own look:** the tab uses GitHub's colours, so it follows the light, dark and dimmed themes.
 
@@ -89,6 +91,8 @@ This tab reads the same files and shows them the way a reviewer thinks about the
     <td align="center"><sub>Review threads, on the requirement they are about</sub></td>
   </tr>
 </table>
+
+<img src="docs/readme/reading-settings-light.png" alt="The toolbar in the pull request header, with the reading settings open: Atkinson Hyperlegible Next, text at 110%, a wide column">
 
 ## Install
 
@@ -143,7 +147,7 @@ The last column is GitHub's rule, not the tab's: it lets a fine-grained token re
 Writing works like GitHub's own review:
 
 - **Comment** publishes at once. **Start a review** keeps the comment private until you submit the review; while a review is in progress, everything you write joins it.
-- **Finish review**, in the outline, submits the pending review as a comment, an approval or a request for changes. It publishes every pending comment of the review, including ones you left on other files in GitHub's own view.
+- **Finish review**, in the toolbar, submits the pending review as a comment, an approval or a request for changes. It publishes every pending comment of the review, including ones you left on other files in GitHub's own view.
 - GitHub takes a line comment only on a line that is part of the diff. When it turns the line down (a requirement that was only moved, for example), the comment is left on the file as a whole and opens with what it is about.
 
 Editing and deleting comments, reactions and suggestions are left to GitHub: each comment's date links to it there.
@@ -190,7 +194,7 @@ On the React page the tab waits until React has taken over the HTML the server s
 | --- | --- |
 | `https://github.com/*` | Add the tab and read files with your session |
 | `https://api.github.com/*` | Ask which OpenSpec files a pull request changes; read and write review comments |
-| `storage` | Keep the token, your review progress and your view preference |
+| `storage` | Keep the token, your review progress, and your view and reading preferences |
 
 The token is kept in the browser's extension storage. Only the extension's background worker reads it, and it attaches it only to requests to api.github.com that are on the tab's short allowlist: a handful of read-only REST paths, and the named review-comment operations. It is never put in a URL, never logged and never given to a web page. Nothing is sent anywhere except GitHub, and nothing is written to GitHub except the comments, replies, resolutions and reviews you submit yourself.
 
@@ -234,6 +238,7 @@ pnpm build && pnpm exec tsx scripts/smoke.ts https://github.com/Fission-AI/OpenS
 | `src/github/` | URL scheme, API access, the loader, tab injection. |
 | `src/ui/` | The React view and its stylesheet. |
 | `src/entrypoints/` | Background worker, content script, page script, settings page. |
+| `public/fonts/` | The fonts the reader can choose, copied from their npm packages by `scripts/fonts.ts`. |
 | `harness/` | The dev harness page. |
 | `fixtures/` | Synthetic OpenSpec repositories used by tests, harness and screenshots. |
 
@@ -242,3 +247,5 @@ Everything under `fixtures/` is invented (a bike-share service). Please keep it 
 ## License
 
 [MIT](LICENSE)
+
+The fonts in `public/fonts/` are not covered by it: [Lexend](https://github.com/googlefonts/lexend) and [Atkinson Hyperlegible Next](https://www.brailleinstitute.org/freefont/) are under the SIL Open Font License 1.1, and each licence is next to the files.

@@ -36,6 +36,8 @@ export interface Services {
   /** What the reader chose last time. The host has it at hand, so the first render follows it. */
   preferences(): Preferences;
   savePreferences(preferences: Preferences): Promise<void>;
+  /** Where a font that ships with the tab is read from (see `fonts.ts`). */
+  fontUrl(file: string): string;
   openOptions(): void;
   /** Point the URL at an item (or at the tab itself), without leaving the page. */
   navigate(target: string | null): void;

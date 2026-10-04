@@ -1,5 +1,4 @@
 import { type RefObject, useEffect, useRef } from 'react';
-import type { Preferences } from '@/github/messages';
 import { useComments } from '../comments';
 import { useReview } from '../context';
 import {
@@ -16,8 +15,7 @@ import {
   TasksIcon,
 } from '../icons';
 import type { OutlineItem } from '../outline';
-import { OpDot, ProgressBar, plural } from './common';
-import { ReviewBar } from './Discussion';
+import { OpDot, plural } from './common';
 
 const ICONS = {
   proposal: BookIcon,
@@ -28,12 +26,6 @@ const ICONS = {
   files: FileIcon,
 } as const;
 
-const VIEWS: Array<{ value: Preferences['diffView']; label: string; hint: string }> = [
-  { value: 'inline', label: 'Inline', hint: 'Changes marked in the text (1)' },
-  { value: 'split', label: 'Side by side', hint: 'Old against new (2)' },
-  { value: 'new', label: 'New only', hint: 'The new version, without marks (3)' },
-];
-
 export function Outline(props: {
   items: OutlineItem[];
   current: string | null;
@@ -41,9 +33,6 @@ export function Outline(props: {
   onFilter(value: string): void;
   filterRef: RefObject<HTMLInputElement | null>;
   onSelect(id: string): void;
-  view: Preferences['diffView'];
-  onView(view: Preferences['diffView']): void;
-  progress: { read: number; total: number; stale: number };
   onHelp(): void;
 }) {
   const review = useReview();
@@ -65,45 +54,6 @@ export function Outline(props: {
 
   return (
     <nav className="outline" aria-label="OpenSpec outline">
-      <div className="outline-progress">
-        <div className="outline-progress-text">
-          <strong>
-            {props.progress.read} of {props.progress.total}
-          </strong>{' '}
-          read
-          {props.progress.stale > 0 && (
-            <span className="stale-note"> · {props.progress.stale} changed since</span>
-          )}
-        </div>
-        <ProgressBar
-          done={props.progress.read}
-          total={props.progress.total}
-          label="Review progress"
-        />
-      </div>
-
-      <ReviewBar />
-
-      <fieldset className="segmented">
-        <legend className="sr-only">How modified requirements are shown</legend>
-        {VIEWS.map((view) => (
-          <label
-            key={view.value}
-            title={view.hint}
-            className={props.view === view.value ? 'is-selected' : undefined}
-          >
-            <input
-              type="radio"
-              name="openspec-diff-view"
-              value={view.value}
-              checked={props.view === view.value}
-              onChange={() => props.onView(view.value)}
-            />
-            {view.label}
-          </label>
-        ))}
-      </fieldset>
-
       <label className="filter">
         <SearchIcon size={14} />
         <span className="sr-only">Filter the outline</span>

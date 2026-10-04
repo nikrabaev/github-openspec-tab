@@ -36,6 +36,8 @@
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",
     "@fission-ai/openspec": "1.14.0",
+    "@fontsource-variable/atkinson-hyperlegible-next": "^5.3.0",
+    "@fontsource-variable/lexend": "^5.3.0",
     "@primer/primitives": "^11.10.0",
     "@types/mdast": "^4.0.4",
     "@types/node": "^24.0.0",

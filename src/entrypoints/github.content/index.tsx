@@ -1,4 +1,5 @@
 import { createRoot, type Root } from 'react-dom/client';
+import { browser, type PublicPath } from 'wxt/browser';
 import type { ContentScriptContext } from 'wxt/utils/content-script-context';
 import {
   createShadowRootUi,
@@ -371,6 +372,7 @@ class Controller {
       this.preferences = prefs;
       await send({ type: 'prefs-set', prefs });
     },
+    fontUrl: (file) => browser.runtime.getURL(`/fonts/${file}` as PublicPath),
     openOptions: () => void send({ type: 'open-options' }),
     navigate: (target) => {
       this.target = target;

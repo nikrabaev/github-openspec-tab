@@ -7,6 +7,7 @@ import { CommentsContext, useCommentsState } from './comments';
 import { CapabilitySection } from './components/Capability';
 import { Callout } from './components/common';
 import { DesignSection } from './components/Design';
+import { FinishReview } from './components/Discussion';
 import { HelpDialog } from './components/Help';
 import { Outline } from './components/Outline';
 import { OverviewCard } from './components/Overview';
@@ -15,6 +16,7 @@ import { PullHeader } from './components/PullHeader';
 import { OutlineResizer } from './components/Resizer';
 import { EmptyState, ErrorState, LoadingState } from './components/States';
 import { TasksSection } from './components/Tasks';
+import { fitTextScale, fitTextWeight } from './components/Toolbar';
 import {
   DiffViewContext,
   PullContext,
@@ -23,6 +25,7 @@ import {
   type ReviewContextValue,
   type Services,
 } from './context';
+import { fontStack, loadFont } from './fonts';
 import { AlertIcon } from './icons';
 import { MarkdownProvider } from './markdown/Markdown';
 import { useMarkdownOptions } from './markdownOptions';
@@ -66,6 +69,9 @@ function Ready({
   const [current, setCurrent] = useState<string | null>(null);
   const [filter, setFilter] = useState('');
   const [help, setHelp] = useState(false);
+  const [settings, setSettings] = useState(false);
+  const [finishing, setFinishing] = useState(false);
+  const [fontFailed, setFontFailed] = useState(false);
   const [prefs, setPrefs] = useState<Preferences>(() => services.preferences());
   const [review, setReview] = useState<ReviewState>({ items: {} });
   const key = pullKey(data.pull);
@@ -92,6 +98,16 @@ function Ready({
     (diffView: Preferences['diffView']) => updatePrefs({ diffView }),
     [updatePrefs],
   );
+  // A font that ships with the tab is read from the extension the first time it is chosen.
+  useEffect(() => {
+    let cancelled = false;
+    setFontFailed(false);
+    loadFont(prefs.font, services.fontUrl).catch(() => !cancelled && setFontFailed(true));
+    return () => {
+      cancelled = true;
+    };
+  }, [prefs.font, services]);
+
   const setOutlineWidth = useCallback(
     (outlineWidth: number) => updatePrefs({ outlineWidth }),
     [updatePrefs],
@@ -291,11 +307,31 @@ function Ready({
       <ReviewContext.Provider value={reviewValue}>
         <CommentsContext.Provider value={comments}>
           <DiffViewContext.Provider value={prefs.diffView}>
-            <PullHeader pull={data.pull} facts={data.facts} />
+            <PullHeader
+              pull={data.pull}
+              facts={data.facts}
+              toolbar={{
+                prefs,
+                onPrefs: updatePrefs,
+                progress,
+                settingsOpen: settings,
+                onSettings: setSettings,
+                onFinishReview: () => setFinishing(true),
+                fontFailed,
+              }}
+            />
             <div
               className="layout"
               ref={root}
-              style={{ '--outline-width': `${prefs.outlineWidth}px` } as CSSProperties}
+              data-width={prefs.contentWidth}
+              style={
+                {
+                  '--outline-width': `${prefs.outlineWidth}px`,
+                  '--reader-scale': fitTextScale(prefs.textScale) / 100,
+                  '--reader-weight': fitTextWeight(prefs.textWeight) - 400,
+                  '--reader-font': fontStack(prefs) ?? undefined,
+                } as CSSProperties
+              }
             >
               <Outline
                 items={visibleOutline}
@@ -304,9 +340,6 @@ function Ready({
                 onFilter={setFilter}
                 filterRef={filterRef}
                 onSelect={goTo}
-                view={prefs.diffView}
-                onView={setView}
-                progress={progress}
                 onHelp={() => setHelp(true)}
               />
               <OutlineResizer width={prefs.outlineWidth} layout={root} onResize={setOutlineWidth} />
@@ -401,6 +434,7 @@ function Ready({
               </main>
             </div>
             {help && <HelpDialog onClose={() => setHelp(false)} />}
+            {finishing && <FinishReview onClose={() => setFinishing(false)} />}
           </DiffViewContext.Provider>
         </CommentsContext.Provider>
       </ReviewContext.Provider>
