@@ -1,0 +1,77 @@
+/** Messages between the content script and the background worker. */
+
+export interface RateLimit {
+  limit: number;
+  remaining: number;
+  /** Unix seconds when the window resets. */
+  reset: number;
+}
+
+export interface ApiResult {
+  ok: boolean;
+  status: number;
+  /** Parsed JSON body, when there was one. */
+  data: unknown;
+  /** GitHub's error message, when the request failed. */
+  message: string | null;
+  rateLimit: RateLimit | null;
+  /** Whether a token was sent with the request. */
+  authenticated: boolean;
+  etag: string | null;
+}
+
+/** Review progress of one pull request: item id → what was read. */
+export interface ReviewState {
+  items: Record<string, { hash: string; at: number }>;
+}
+
+export interface Preferences {
+  diffView: 'inline' | 'split' | 'new';
+}
+
+export const DEFAULT_PREFERENCES: Preferences = { diffView: 'inline' };
+
+export type Message =
+  | { type: 'api'; path: string; etag?: string }
+  | { type: 'token-status' }
+  | { type: 'open-options' }
+  | { type: 'review-get'; key: string }
+  | { type: 'review-set'; key: string; state: ReviewState }
+  | { type: 'prefs-get' }
+  | { type: 'prefs-set'; prefs: Preferences }
+  | { type: 'repo-flag-get'; repo: string }
+  | { type: 'repo-flag-set'; repo: string; hasOpenSpec: boolean };
+
+export interface MessageResult {
+  api: ApiResult;
+  'token-status': { hasToken: boolean };
+  'open-options': null;
+  'review-get': ReviewState | null;
+  'review-set': null;
+  'prefs-get': Preferences;
+  'prefs-set': null;
+  'repo-flag-get': { hasOpenSpec: boolean } | null;
+  'repo-flag-set': null;
+}
+
+/**
+ * The only GitHub API calls the tab makes. The background worker refuses
+ * anything else, so it cannot be used to send the token to another endpoint.
+ */
+const REPO = '/repos/[\\w.-]+/[\\w.-]+';
+const SHA = '[0-9a-f]{40}';
+const ALLOWED_API_PATHS = [
+  new RegExp(`^${REPO}/pulls/\\d+$`),
+  new RegExp(`^${REPO}/compare/${SHA}\\.\\.\\.${SHA}\\?per_page=1&page=2$`),
+  new RegExp(`^${REPO}/git/trees/${SHA}(?::[\\w.\\-/]+)?\\?recursive=1$`),
+  new RegExp(`^${REPO}/git/blobs/${SHA}$`),
+];
+
+export function isAllowedApiPath(path: string): boolean {
+  const [pathname = ''] = path.split('?');
+  // No dot segments: the URL parser would resolve them into a different endpoint.
+  if (pathname.split(/[/:]/).some((segment) => segment === '.' || segment === '..')) return false;
+  return ALLOWED_API_PATHS.some((pattern) => pattern.test(path));
+}
+
+export const TOKEN_KEY = 'token';
