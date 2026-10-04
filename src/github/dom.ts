@@ -27,9 +27,9 @@ const REACT_ROOT_SELECTOR = 'react-app, react-partial';
 const COUNTER_SELECTOR = '[data-component="CounterLabel"], .Counter';
 const SELECTED_SELECTOR = '[aria-current="page"], .selected';
 
+// The OpenSpec mark: a pixel-art ring around a solid bar, on an 8 x 9 grid of 1.75-unit cells.
 const ICON_PATHS = [
-  'M3.75 1.5a.25.25 0 0 0-.25.25v12.5c0 .138.112.25.25.25h8.5a.25.25 0 0 0 .25-.25V1.75a.25.25 0 0 0-.25-.25h-8.5ZM2 1.75C2 .784 2.784 0 3.75 0h8.5C13.216 0 14 .784 14 1.75v12.5A1.75 1.75 0 0 1 12.25 16h-8.5A1.75 1.75 0 0 1 2 14.25V1.75Z',
-  'M5 4.75A.75.75 0 0 1 5.75 4h4.5a.75.75 0 0 1 0 1.5h-4.5A.75.75 0 0 1 5 4.75Zm0 3A.75.75 0 0 1 5.75 7h4.5a.75.75 0 0 1 0 1.5h-4.5A.75.75 0 0 1 5 7.75Zm0 3a.75.75 0 0 1 .75-.75h2.5a.75.75 0 0 1 0 1.5h-2.5a.75.75 0 0 1-.75-.75Z',
+  'M6.25.125h3.5v1.75h-3.5ZM2.75 1.875h3.5v3.5h-3.5ZM9.75 1.875h3.5v3.5h-3.5ZM1 5.375h1.75v5.25H1ZM6.25 5.375h3.5v5.25h-3.5ZM13.25 5.375H15v5.25h-1.75ZM2.75 10.625h3.5v3.5h-3.5ZM9.75 10.625h3.5v3.5h-3.5ZM6.25 14.125h3.5v1.75h-3.5Z',
 ];
 
 /** Rules that must apply to GitHub's page itself, outside our shadow root. */
