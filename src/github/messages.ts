@@ -29,9 +29,10 @@ export interface GraphqlResult {
    * Why it failed. `no-token`: none is stored. `forbidden`: GitHub will not let
    * this token do it. `invalid`: GitHub turned the request itself down, e.g. a
    * line that is not part of the diff. `refused`: not an operation this
-   * extension runs. `network`: the request did not get through.
+   * extension runs. `network`: the request did not get through. `stale`: the
+   * background script is from an older build and does not know the message.
    */
-  failure: 'no-token' | 'forbidden' | 'invalid' | 'refused' | 'network' | 'failed' | null;
+  failure: 'no-token' | 'forbidden' | 'invalid' | 'refused' | 'network' | 'stale' | 'failed' | null;
   data: unknown;
   /** GitHub's own words about the failure, when it gave any. */
   message: string | null;

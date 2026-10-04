@@ -73,7 +73,13 @@ export interface CommentTarget {
 export type CommentMode = 'single' | 'review';
 export type ReviewEvent = 'COMMENT' | 'APPROVE' | 'REQUEST_CHANGES';
 
-export type CommentErrorKind = 'no-token' | 'forbidden' | 'invalid' | 'network' | 'failed';
+export type CommentErrorKind =
+  | 'no-token'
+  | 'forbidden'
+  | 'invalid'
+  | 'network'
+  | 'stale'
+  | 'failed';
 
 export class CommentError extends Error {
   constructor(
@@ -96,6 +102,11 @@ function toError(result: GraphqlResult): CommentError {
       );
     case 'network':
       return new CommentError('network', 'Could not reach api.github.com. Nothing was posted.');
+    case 'stale':
+      return new CommentError(
+        'stale',
+        'The extension was rebuilt, but its background script is still the old one. Reload the extension (Firefox: about:debugging, This Firefox, Reload; Chrome: chrome://extensions, the reload button), then refresh this page.',
+      );
     case 'invalid':
       return new CommentError('invalid', result.message ?? 'GitHub turned the request down.');
     default:

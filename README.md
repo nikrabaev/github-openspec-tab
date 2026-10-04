@@ -109,11 +109,11 @@ pnpm build
 
 **Firefox**
 
-Run `pnpm build:firefox`, open `about:debugging#/runtime/this-firefox`, choose **Load Temporary Add-on** and pick `.output/firefox-mv2/manifest.json`. The Firefox build compiles but has not been tested yet.
+Run `pnpm build:firefox`, open `about:debugging#/runtime/this-firefox`, choose **Load Temporary Add-on** and pick `.output/firefox-mv2/manifest.json`. The Firefox build is in daily use, but the automated smoke test only drives Chromium.
 
 Then open any pull request on github.com and choose the **OpenSpec** tab.
 
-**Updating:** pull, run `pnpm build`, press the reload button on the extension's card in `chrome://extensions`, then refresh the pull request page. Refreshing the page alone keeps running the version the browser loaded before.
+**Updating:** pull and build again (`pnpm build`, or `pnpm build:firefox`), reload the extension, then refresh the pull request page. In Chrome, press the reload button on the extension's card in `chrome://extensions`; in Firefox, press **Reload** next to the extension in `about:debugging#/runtime/this-firefox`. Refreshing the page alone is not enough: the browser keeps running parts of the build it loaded before, and the tab then mixes old and new code.
 
 ## Private repositories
 

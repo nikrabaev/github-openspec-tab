@@ -30,7 +30,12 @@ export async function send<M extends Message>(message: M): Promise<MessageResult
  */
 export const extensionBackend: Backend = {
   api: (path, etag) => send({ type: 'api', path, ...(etag ? { etag } : {}) }),
-  graphql: (operation, variables) => send({ type: 'graphql', operation, variables }),
+  async graphql(operation, variables) {
+    const result = await send({ type: 'graphql', operation, variables });
+    // After a rebuild the browser can run the new content script against the background
+    // script it started earlier, which does not know this message and answers nothing.
+    return result ?? { ok: false, failure: 'stale', data: null, message: null };
+  },
 
   async raw(pull, commit, path) {
     const response = await fetch(rawUrl(pull, commit, path), { credentials: 'same-origin' });

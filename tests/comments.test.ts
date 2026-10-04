@@ -237,6 +237,16 @@ describe('reading comments', () => {
     });
   });
 
+  it('says to reload the extension when an older background script answers nothing', async () => {
+    const { backend, rest } = scripted(() => refused('stale'));
+    const error = await loadComments(backend, pull).catch((e: unknown) => e);
+    expect(error).toBeInstanceOf(CommentError);
+    expect((error as CommentError).kind).toBe('stale');
+    expect((error as CommentError).message).toContain('Reload the extension');
+    // It is not mistaken for "no token": nothing is read through REST instead.
+    expect(rest).toEqual([]);
+  });
+
   it('says so when the threads cannot be read', async () => {
     const { backend } = scripted(() => refused('network'));
     await expect(loadComments(backend, pull)).rejects.toBeInstanceOf(CommentError);
