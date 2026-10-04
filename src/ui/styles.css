@@ -428,7 +428,6 @@ li:first-child > .outline-item.depth-0 {
   color: var(--fg);
   font-weight: 600;
   background: var(--bg-neutral);
-  box-shadow: inset 2px 0 0 var(--fg-accent);
 }
 
 .outline-label {
@@ -1150,13 +1149,53 @@ details[open] > summary .chev {
 
 .step-added {
   background: var(--line-added);
-  box-shadow: inset 2px 0 0 var(--added-line);
 }
 
 .step-removed {
   color: var(--fg-muted);
   background: var(--line-removed);
-  box-shadow: inset 2px 0 0 var(--removed-line);
+}
+
+/* A plus or minus sign, as in a diff, so added and removed rows do not rely on colour alone. */
+.step-added,
+.step-removed,
+.blk-added,
+.blk-removed {
+  position: relative;
+}
+
+.step-added::before,
+.step-removed::before,
+div.blk-added::before,
+div.blk-removed::before {
+  position: absolute;
+  inset-block-start: 3px;
+  inset-inline-start: 5px;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.step-added::before,
+div.blk-added::before {
+  color: var(--added-fg);
+  content: '+';
+}
+
+.step-removed::before,
+div.blk-removed::before {
+  color: var(--removed-fg);
+  content: '\2212';
+}
+
+li.blk-added::marker {
+  color: var(--added-fg);
+  content: '+  ';
+}
+
+li.blk-removed::marker {
+  color: var(--removed-fg);
+  content: '\2212  ';
 }
 
 .step-removed .step-text {
@@ -1221,18 +1260,16 @@ li.blk-removed {
 }
 
 .blk {
-  padding: 4px 10px;
+  padding: 4px 10px 4px 22px;
 }
 
 .blk-added {
   background: var(--line-added);
-  box-shadow: inset 2px 0 0 var(--added-line);
 }
 
 .blk-removed {
   color: var(--fg-muted);
   background: var(--line-removed);
-  box-shadow: inset 2px 0 0 var(--removed-line);
 }
 
 /* ---------- Side by side ---------- */
@@ -1297,6 +1334,12 @@ li.blk-removed {
   grid-template-columns: 44px minmax(0, 1fr);
   gap: 8px;
   height: 100%;
+}
+
+/* Room for the plus or minus sign next to the narrower keyword column. */
+.scn-split .step-added,
+.scn-split .step-removed {
+  padding-inline-start: 18px;
 }
 
 .scn-split .step.is-prose {
@@ -1918,9 +1961,14 @@ button.chip:hover {
 }
 
 .md blockquote {
-  padding-inline-start: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 14px;
   color: var(--fg-muted);
-  border-inline-start: 3px solid var(--border);
+  background: var(--bg-muted);
+  border: 1px solid var(--border-muted);
+  border-radius: 8px;
 }
 
 .md pre {
