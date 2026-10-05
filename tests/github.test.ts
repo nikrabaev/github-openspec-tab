@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
-import { beforeEach, describe, expect, it } from 'vitest';
-import type { Backend } from '../src/github/backend';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { type Backend, extensionBackend } from '../src/github/backend';
 import { clearLoadCaches, LoadError, loadPull } from '../src/github/load';
 import { type ApiResult, isAllowedApiPath } from '../src/github/messages';
 import {
@@ -298,5 +298,86 @@ describe('loadPull', () => {
     ).toBe('forbidden');
     expect(await kindFor(failed(0, { message: 'offline' }))).toBe('network');
     expect(await kindFor(failed(500))).toBe('unknown');
+  });
+});
+
+/**
+ * What a content script has to fetch with. Chromium: its own `fetch`, which acts as the page.
+ * Gecko: its own `fetch`, which fails where the answer is a redirect to another host, and
+ * `content.fetch`, the page's.
+ */
+describe('extensionBackend', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  const refused = async (): Promise<Response> => {
+    throw new TypeError('NetworkError when attempting to fetch resource.');
+  };
+  const rawFile = `https://github.com/pedalway/pedalway/raw/${HEAD}/openspec/specs/ride%20unlock/spec.md`;
+
+  it('reads files with the fetch of the page where content scripts are given one', async () => {
+    const own = vi.fn(refused);
+    const page = vi.fn(async () => new Response('# Ride unlock'));
+    vi.stubGlobal('fetch', own);
+    vi.stubGlobal('content', { fetch: page });
+    expect(await extensionBackend.raw(pull, HEAD, 'openspec/specs/ride unlock/spec.md')).toBe(
+      '# Ride unlock',
+    );
+    expect(page).toHaveBeenCalledWith(rawFile, { credentials: 'same-origin' });
+    expect(await extensionBackend.probe(pull, 'openspec')).toBe(true);
+    expect(page).toHaveBeenLastCalledWith(
+      'https://github.com/pedalway/pedalway/tree/HEAD/openspec',
+      {
+        method: 'HEAD',
+        credentials: 'same-origin',
+      },
+    );
+    expect(own).not.toHaveBeenCalled();
+  });
+
+  it('reads files with its own fetch elsewhere, whatever the page calls content', async () => {
+    const own = vi.fn(async () => new Response('# Ride unlock'));
+    vi.stubGlobal('fetch', own);
+    expect(await extensionBackend.raw(pull, HEAD, 'openspec/specs/ride unlock/spec.md')).toBe(
+      '# Ride unlock',
+    );
+    // What `content` is in a page with such an element: the element, which has no `fetch`.
+    vi.stubGlobal('content', { id: 'content', tagName: 'DIV' });
+    expect(await extensionBackend.raw(pull, HEAD, 'openspec/specs/ride unlock/spec.md')).toBe(
+      '# Ride unlock',
+    );
+    expect(own.mock.calls).toEqual([
+      [rawFile, { credentials: 'same-origin' }],
+      [rawFile, { credentials: 'same-origin' }],
+    ]);
+  });
+
+  it('tells a file the session cannot see from a request that failed', async () => {
+    vi.stubGlobal('fetch', async () => new Response('Not Found', { status: 404 }));
+    expect(await extensionBackend.raw(pull, HEAD, 'openspec/project.md')).toBeNull();
+    expect(await extensionBackend.probe(pull, 'openspec')).toBe(false);
+    vi.stubGlobal('fetch', async () => new Response('', { status: 503 }));
+    await expect(extensionBackend.raw(pull, HEAD, 'openspec/project.md')).rejects.toThrow('503');
+    expect(await extensionBackend.probe(pull, 'openspec')).toBeNull();
+    vi.stubGlobal('fetch', refused);
+    await expect(extensionBackend.raw(pull, HEAD, 'openspec/project.md')).rejects.toThrow();
+    expect(await extensionBackend.probe(pull, 'openspec')).toBeNull();
+  });
+
+  it('spends no API calls on files where only the fetch of the page follows the redirect', async () => {
+    clearLoadCaches();
+    const { backend, calls, rawCalls } = fakeGitHub('showcase');
+    // GitHub as the page sees it: `/raw/<commit>/<path>` answers with the file.
+    const page = vi.fn(async (url: string) => {
+      const [, commit = '', path = ''] = /\/raw\/([0-9a-f]{40})\/(.+)$/.exec(url) ?? [];
+      const text = await backend.raw(pull, commit, decodeURIComponent(path));
+      return text === null ? new Response('Not Found', { status: 404 }) : new Response(text);
+    });
+    vi.stubGlobal('fetch', vi.fn(refused));
+    vi.stubGlobal('content', { fetch: page });
+    const loaded = await loadPull(pull, { ...backend, raw: extensionBackend.raw });
+    expect(loaded.model.requirementChanges).toBe(14);
+    expect(rawCalls.length).toBe(loaded.plan.loads.length + 1);
+    expect(calls.filter((path) => path.includes('/git/blobs/'))).toEqual([]);
+    expect(calls.length).toBe(4);
   });
 });
