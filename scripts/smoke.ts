@@ -295,7 +295,8 @@ try {
   await page.goto(`${url.replace(/[#?].*$/, '')}/files#openspec`, {
     waitUntil: 'domcontentloaded',
   });
-  const lastCard = page.locator(`${view} .req`).last();
+  // Unchanged requirements sit in a closed <details>, so they are never visible: skip them.
+  const lastCard = page.locator(`${view} .req:not(.req-unchanged)`).last();
   await lastCard.waitFor({ timeout: 30_000 });
   await lastCard.scrollIntoViewIfNeeded();
   await page.waitForTimeout(500);
